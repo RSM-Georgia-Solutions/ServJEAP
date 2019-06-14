@@ -75,50 +75,70 @@ namespace ServiceJournalEntryAp
                 string incomeTaxAccCr = recSet.Fields.Item("U_IncomeTaxAccCr").Value.ToString();
                 string incomeTaxControlAccCr = recSet.Fields.Item("U_IncomeTaxAccCr").Value.ToString();
 
+
+
                 Documents invoiceDi = (Documents)DiManager.Company.GetBusinessObject(BoObjectTypes.oPurchaseInvoices);
                 invoiceDi.GetByKey(int.Parse(invDocEnttry, CultureInfo.InvariantCulture));
 
                 SAPbobsCOM.BusinessPartners bp = (SAPbobsCOM.BusinessPartners)DiManager.Company.GetBusinessObject(BoObjectTypes.oBusinessPartners);
                 bp.GetByKey(invoiceDi.CardCode);
 
-                var incomeTaxPayerPercent = double.Parse(bp.UserFields.Fields.Item("U_IncomeTaxPayerPercent").Value.ToString(),CultureInfo.InstalledUICulture);
+                var incomeTaxPayerPercent = double.Parse(bp.UserFields.Fields.Item("U_IncomeTaxPayerPercent").Value.ToString(), CultureInfo.InstalledUICulture);
 
                 var pensionPayerPercent = double.Parse(bp.UserFields.Fields.Item("U_PensionPayerPercent").Value.ToString());
 
-                double totalLc = invoiceDi.DocTotal;
-
-                double pensionAmount = Math.Round(totalLc * pensionPayerPercent / 100 ,6);
-                double incomeTaxAmount = Math.Round((totalLc - pensionAmount) * incomeTaxPayerPercent / 100);
-
-                if (isIncomeTaxPayer)
+                for (int i = 0; i < invoiceDi.Lines.Count; i++)
                 {
-                    try
+                    invoiceDi.Lines.SetCurrentLine(i);
+                    recSet.DoQuery(DiManager.QueryHanaTransalte($"SELECT U_PensionLiable FROM OITM WHERE OITM.ItemCode = N'{invoiceDi.Lines.ItemCode}'"));
+                    bool isPensionLiable = recSet.Fields.Item("U_PensionLiable").Value.ToString() == "01";
+                    if (!isPensionLiable)
                     {
-                        string incomeTaxPayerTransId = DiManager.AddJournalEntry(DiManager.Company, incomeTaxAccCr, incomeTaxAccDr, incomeTaxControlAccCr, invoiceDi.CardCode, incomeTaxAmount, invoiceDi.Series, invoiceDi.Comments,  invoiceDi.DocDate, invoiceDi.BPL_IDAssignedToInvoice, invoiceDi.DocCurrency);
+                        continue;
                     }
-                    catch (Exception e)
-                    {
-                        Application.SBO_Application.MessageBox(e.Message);
-                    }
-                }
-                if (isPensionPayer)
-                {
-                    try
-                    {
-                        string incomeTaxPayerTransIdComp = DiManager.AddJournalEntry(DiManager.Company, pensionAccCr, pensionAccDr, pensionControlAccCr, pensionControlAccDr, pensionAmount, invoiceDi.Series, invoiceDi.Comments, invoiceDi.DocDate, invoiceDi.BPL_IDAssignedToInvoice, invoiceDi.DocCurrency);
-                    }
-                    catch (Exception e)
-                    {
-                        Application.SBO_Application.MessageBox(e.Message);
-                    }
+                    double lineTotal = invoiceDi.Lines.LineTotal;
+                    double pensionAmount = Math.Round(lineTotal * pensionPayerPercent / 100, 6);
+                    double incomeTaxAmount = Math.Round((lineTotal - pensionAmount) * incomeTaxPayerPercent / 100,6);
 
-                    try
+                    if (isIncomeTaxPayer)
                     {
-                        string incomeTaxPayerTransId = DiManager.AddJournalEntry(DiManager.Company, pensionAccCr, "", pensionControlAccCr, invoiceDi.CardCode, pensionAmount, invoiceDi.Series, invoiceDi.Comments, invoiceDi.DocDate, invoiceDi.BPL_IDAssignedToInvoice, invoiceDi.DocCurrency);
+                        try
+                        {
+                            string incomeTaxPayerTransId = DiManager.AddJournalEntry(DiManager.Company, incomeTaxAccCr,
+                                incomeTaxAccDr, incomeTaxControlAccCr, invoiceDi.CardCode, incomeTaxAmount,
+                                invoiceDi.Series, invoiceDi.Comments, invoiceDi.DocDate,
+                                invoiceDi.BPL_IDAssignedToInvoice, invoiceDi.DocCurrency);
+                        }
+                        catch (Exception e)
+                        {
+                            Application.SBO_Application.MessageBox(e.Message);
+                        }
                     }
-                    catch (Exception e)
+                    if (isPensionPayer)
                     {
-                        Application.SBO_Application.MessageBox(e.Message);
+                        try
+                        {
+                            string incomeTaxPayerTransIdComp = DiManager.AddJournalEntry(DiManager.Company,
+                                pensionAccCr, pensionAccDr, pensionControlAccCr, pensionControlAccDr, pensionAmount,
+                                invoiceDi.Series, invoiceDi.Comments, invoiceDi.DocDate,
+                                invoiceDi.BPL_IDAssignedToInvoice, invoiceDi.DocCurrency);
+                        }
+                        catch (Exception e)
+                        {
+                            Application.SBO_Application.MessageBox(e.Message);
+                        }
+
+                        try
+                        {
+                            string incomeTaxPayerTransId = DiManager.AddJournalEntry(DiManager.Company, pensionAccCr,
+                                "", pensionControlAccCr, invoiceDi.CardCode, pensionAmount, invoiceDi.Series,
+                                invoiceDi.Comments, invoiceDi.DocDate, invoiceDi.BPL_IDAssignedToInvoice,
+                                invoiceDi.DocCurrency);
+                        }
+                        catch (Exception e)
+                        {
+                            Application.SBO_Application.MessageBox(e.Message);
+                        }
                     }
                 }
             }

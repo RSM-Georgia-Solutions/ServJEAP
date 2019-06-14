@@ -25,6 +25,7 @@ namespace ServiceJournalEntryAp.Initialization
                 true);
             diManager.AddField("OCRD", "PensionPayerPercent", "საპენსიოს %", BoFieldTypes.db_Float, 33, false,
                 true);
+            diManager.AddField("OITM", "PensionLiable", "ეკუთვნის საპენსიო", BoFieldTypes.db_Alpha, 250, validValues, true, true);
 
             diManager.AddField("RSM_SERVICE_PARAMS", "PensionAccDr", "საპენსიოს ანგარიში", BoFieldTypes.db_Alpha, 20, false);
             diManager.AddField("RSM_SERVICE_PARAMS", "PensionAccCr", "საპენსიოს ანგარიში", BoFieldTypes.db_Alpha, 20, false);
