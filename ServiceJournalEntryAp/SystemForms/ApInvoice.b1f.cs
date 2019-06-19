@@ -75,8 +75,6 @@ namespace ServiceJournalEntryAp
                 string incomeTaxAccCr = recSet.Fields.Item("U_IncomeTaxAccCr").Value.ToString();
                 string incomeTaxControlAccCr = recSet.Fields.Item("U_IncomeTaxAccCr").Value.ToString();
 
-
-
                 Documents invoiceDi = (Documents)DiManager.Company.GetBusinessObject(BoObjectTypes.oPurchaseInvoices);
                 invoiceDi.GetByKey(int.Parse(invDocEnttry, CultureInfo.InvariantCulture));
 
@@ -100,7 +98,7 @@ namespace ServiceJournalEntryAp
                     double pensionAmount = Math.Round(lineTotal * pensionPayerPercent / 100, 6);
                     double incomeTaxAmount = Math.Round((lineTotal - pensionAmount) * incomeTaxPayerPercent / 100,6);
 
-                    if (isIncomeTaxPayer)
+                    if (isIncomeTaxPayer && invoiceDi.CancelStatus == CancelStatusEnum.csNo)
                     {
                         try
                         {
@@ -114,12 +112,12 @@ namespace ServiceJournalEntryAp
                             Application.SBO_Application.MessageBox(e.Message);
                         }
                     }
-                    if (isPensionPayer)
+                    if (isIncomeTaxPayer && invoiceDi.CancelStatus == CancelStatusEnum.csCancellation)
                     {
                         try
                         {
-                            string incomeTaxPayerTransIdComp = DiManager.AddJournalEntry(DiManager.Company,
-                                pensionAccCr, pensionAccDr, pensionControlAccCr, pensionControlAccDr, pensionAmount,
+                            string incomeTaxPayerTransId = DiManager.AddJournalEntry(DiManager.Company, incomeTaxAccCr,
+                                incomeTaxAccDr, incomeTaxControlAccCr, invoiceDi.CardCode, -incomeTaxAmount,
                                 invoiceDi.Series, invoiceDi.Comments, invoiceDi.DocDate,
                                 invoiceDi.BPL_IDAssignedToInvoice, invoiceDi.DocCurrency);
                         }
@@ -127,19 +125,33 @@ namespace ServiceJournalEntryAp
                         {
                             Application.SBO_Application.MessageBox(e.Message);
                         }
-
-                        try
-                        {
-                            string incomeTaxPayerTransId = DiManager.AddJournalEntry(DiManager.Company, pensionAccCr,
-                                "", pensionControlAccCr, invoiceDi.CardCode, pensionAmount, invoiceDi.Series,
-                                invoiceDi.Comments, invoiceDi.DocDate, invoiceDi.BPL_IDAssignedToInvoice,
-                                invoiceDi.DocCurrency);
-                        }
-                        catch (Exception e)
-                        {
-                            Application.SBO_Application.MessageBox(e.Message);
-                        }
                     }
+                    //if (isPensionPayer)
+                    //{
+                    //    try
+                    //    {
+                    //        string incomeTaxPayerTransIdComp = DiManager.AddJournalEntry(DiManager.Company,
+                    //            pensionAccCr, pensionAccDr, pensionControlAccCr, pensionControlAccDr, pensionAmount,
+                    //            invoiceDi.Series, invoiceDi.Comments, invoiceDi.DocDate,
+                    //            invoiceDi.BPL_IDAssignedToInvoice, invoiceDi.DocCurrency);
+                    //    }
+                    //    catch (Exception e)
+                    //    {
+                    //        Application.SBO_Application.MessageBox(e.Message);
+                    //    }
+
+                    //    try
+                    //    {
+                    //        string incomeTaxPayerTransId = DiManager.AddJournalEntry(DiManager.Company, pensionAccCr,
+                    //            "", pensionControlAccCr, invoiceDi.CardCode, pensionAmount, invoiceDi.Series,
+                    //            invoiceDi.Comments, invoiceDi.DocDate, invoiceDi.BPL_IDAssignedToInvoice,
+                    //            invoiceDi.DocCurrency);
+                    //    }
+                    //    catch (Exception e)
+                    //    {
+                    //        Application.SBO_Application.MessageBox(e.Message);
+                    //    }
+                    //}
                 }
             }
 
