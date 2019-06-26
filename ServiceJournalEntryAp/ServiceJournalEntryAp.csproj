@@ -65,6 +65,10 @@
     <Reference Include="SAPBusinessOneSDK" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Helpers\DocumentHelper.cs" />
+    <Compile Include="SystemForms\OutgoingPaymnt.b1f.cs">
+      <DependentUpon>OutgoingPaymnt.b1f</DependentUpon>
+    </Compile>
     <None Include="Forms\BusinessPartners.b1f">
       <FormCategory>UserForm</FormCategory>
     </None>
@@ -101,6 +105,12 @@
     <Compile Include="Program.cs" />
     <Compile Include="Menu.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <None Include="SystemForms\OutgoingPaymnt.b1f">
+      <FormCategory>SystemForm</FormCategory>
+    </None>
+    <None Include="SystemForms\OutgoingPaymnt.b1f__orig_srf">
+      <DependentUpon>OutgoingPaymnt.b1f</DependentUpon>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.6.1">
