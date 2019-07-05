@@ -11,6 +11,7 @@ namespace ServiceJournalEntryAp.Initialization
         public void Run(DiManager diManager)
         {
             diManager.CreateTable("RSM_SERVICE_PARAMS", SAPbobsCOM.BoUTBTableType.bott_NoObjectAutoIncrement);
+            diManager.CreateTable("RSM_BSP_HISTORY", SAPbobsCOM.BoUTBTableType.bott_NoObjectAutoIncrement);
         }
     }
 }

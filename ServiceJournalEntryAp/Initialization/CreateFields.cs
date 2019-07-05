@@ -35,6 +35,13 @@ namespace ServiceJournalEntryAp.Initialization
             diManager.AddField("RSM_SERVICE_PARAMS", "IncomeTaxAccCr", "საშემოსავლოს ანგარიში", BoFieldTypes.db_Alpha, 20, false);
             diManager.AddField("RSM_SERVICE_PARAMS", "IncomeControlTaxAccDr", "საშემოსავლოს ანგარიში", BoFieldTypes.db_Alpha, 20, false);
             diManager.AddField("RSM_SERVICE_PARAMS", "IncomeControlTaxAccCr", "საშემოსავლოს ანგარიში", BoFieldTypes.db_Alpha, 20, false);
+
+            diManager.AddField("RSM_BSP_HISTORY", "BSP_ID_NUMBER", "ParentId", BoFieldTypes.db_Alpha, 202, false);
+            diManager.AddField("RSM_BSP_HISTORY", "BSP_SEQUENCE", "SEQUENCE", BoFieldTypes.db_Alpha, 202, false);
+            diManager.AddField("RSM_BSP_HISTORY", "BSP_ACCOUNT", "ACCOUNT", BoFieldTypes.db_Alpha, 202, false);
+            diManager.AddField("RSM_BSP_HISTORY", "TRANS_ID_EMPLOYEE", "Transaction Id", BoFieldTypes.db_Alpha, 202, false);
+            diManager.AddField("RSM_BSP_HISTORY", "TRANS_ID_COMPANY", "Transaction Id", BoFieldTypes.db_Alpha, 202, false);
+
         }
     }
 }

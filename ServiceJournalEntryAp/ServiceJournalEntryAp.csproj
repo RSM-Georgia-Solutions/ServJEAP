@@ -66,6 +66,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Helpers\DocumentHelper.cs" />
+    <Compile Include="SystemForms\BankStatementDetails.b1f.cs">
+      <DependentUpon>BankStatementDetails.b1f</DependentUpon>
+    </Compile>
     <Compile Include="SystemForms\OutgoingPaymnt.b1f.cs">
       <DependentUpon>OutgoingPaymnt.b1f</DependentUpon>
     </Compile>
@@ -105,6 +108,12 @@
     <Compile Include="Program.cs" />
     <Compile Include="Menu.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <None Include="SystemForms\BankStatementDetails.b1f">
+      <FormCategory>SystemForm</FormCategory>
+    </None>
+    <None Include="SystemForms\BankStatementDetails.b1f__orig_srf">
+      <DependentUpon>BankStatementDetails.b1f</DependentUpon>
+    </None>
     <None Include="SystemForms\OutgoingPaymnt.b1f">
       <FormCategory>SystemForm</FormCategory>
     </None>

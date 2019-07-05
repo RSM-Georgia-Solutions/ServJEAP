@@ -94,6 +94,10 @@ namespace ServiceJournalEntryAp.Forms
         private void Grid0_ClickAfter(object sboObject, SAPbouiCOM.SBOItemEventArg pVal)
         {
             Grid0.Rows.SelectedRows.Clear();
+            if (pVal.Row == -1)
+            {
+                return;
+            }
             Grid0.Rows.SelectedRows.Add(pVal.Row);
         }
     }
