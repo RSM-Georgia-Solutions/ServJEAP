@@ -25,6 +25,7 @@ namespace ServiceJournalEntryAp.Helpers
                 $"SELECT U_IncomeTaxPayer, U_PensionPayer FROM OCRD WHERE OCRD.CardCode = N'{bpCode}'"));
 
             bool isIncomeTaxPayer = recSet.Fields.Item("U_IncomeTaxPayer").Value.ToString() == "01";
+            bool isPensionPayer = recSet.Fields.Item("U_PensionPayer").Value.ToString() == "01";
             recSet.DoQuery(DiManager.QueryHanaTransalte($"Select * From [@RSM_SERVICE_PARAMS]"));
             string incomeTaxAccDr = recSet.Fields.Item("U_IncomeTaxAccDr").Value.ToString();
             string incomeTaxAccCr = recSet.Fields.Item("U_IncomeTaxAccCr").Value.ToString();
@@ -57,9 +58,18 @@ namespace ServiceJournalEntryAp.Helpers
                 }
                 else
                 {
-                    double lineTotal = invoiceDi.Lines.LineTotal;
-                    double pensionAmount = Math.Round(lineTotal * pensionPayerPercent / 100, 6);
-                    incomeTaxAmount = Math.Round((lineTotal - pensionAmount) * incomeTaxPayerPercent / 100, 6);
+                    if (isPensionPayer)
+                    {
+                        double lineTotal = invoiceDi.Lines.LineTotal;
+                        double pensionAmount = Math.Round(lineTotal * pensionPayerPercent / 100, 6);
+                        incomeTaxAmount = Math.Round((lineTotal - pensionAmount) * incomeTaxPayerPercent / 100, 6);
+                    }
+                    else
+                    {
+                        double lineTotal = invoiceDi.Lines.LineTotal;
+                        incomeTaxAmount = Math.Round((lineTotal) * incomeTaxPayerPercent / 100, 6);
+                    }
+
                 }
 
 
