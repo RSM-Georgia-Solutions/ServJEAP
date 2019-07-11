@@ -62,14 +62,14 @@ namespace ServiceJournalEntryAp.SystemForms
             var bsNumber = ((EditText)activeForm.Items.Item("10000022").Specific).Value;
             string idNumber = activeForm.DataSources.DBDataSources.Item("OBNH").GetValue("IdNumber", 0);
 
-            Recordset recSetSeries =(Recordset) DiManager.Company.GetBusinessObject(BoObjectTypes.BoRecordset);
+            Recordset recSetSeries = (Recordset)DiManager.Company.GetBusinessObject(BoObjectTypes.BoRecordset);
             recSetSeries.DoQuery(DiManager.QueryHanaTransalte($"SELECT OutSeri FROM DSC1 WHERE Account = N'{accountHeader}'"));
-            var series =  int.Parse(recSetSeries.Fields.Item("OutSeri").Value.ToString());
+            var series = int.Parse(recSetSeries.Fields.Item("OutSeri").Value.ToString());
 
             var matrix = (Matrix)activeForm.Items.Item("10000036").Specific;
-          
 
-            
+
+
             for (int i = 1; i <= matrix.RowCount; i++)
             {
                 if (((ComboBox)matrix.GetCellSpecific("10000037", i)).Selected == null)
@@ -80,6 +80,7 @@ namespace ServiceJournalEntryAp.SystemForms
                 string cardCode = activeForm.DataSources.DBDataSources.Item(0).GetValue("CardCode", i - 1);
                 string bplIdString = activeForm.DataSources.DBDataSources.Item(0).GetValue("BPLIdPmn", i - 1);
                 string sequence = activeForm.DataSources.DBDataSources.Item("OBNK").GetValue("Sequence", i - 1);
+                string order = activeForm.DataSources.DBDataSources.Item("OBNK").GetValue("VisOrder", i - 1);
 
                 int journalEntryTransId;
                 try
@@ -88,15 +89,41 @@ namespace ServiceJournalEntryAp.SystemForms
                 }
                 catch (Exception e)
                 {
-                    hasNoJounralEntryCount+=2;
+                    totalCount += 2;
+                    hasNoJounralEntryCount += 2;
                     continue;
                 }
 
+
                 int bplId = int.Parse(bplIdString);
+
                 if (string.IsNullOrWhiteSpace(cardCode))
                 {
                     totalCount += 2;
                     hasNoBp += 2;
+                    continue;
+                }
+
+
+                JournalEntries journalEntry = (SAPbobsCOM.JournalEntries)DiManager.Company.GetBusinessObject(SAPbobsCOM.BoObjectTypes.oJournalEntries);
+                journalEntry.GetByKey(journalEntryTransId);
+                bool hasVendor = true;
+
+                for (int j = 0; j < journalEntry.Lines.Count; j++)
+                {
+                    journalEntry.Lines.SetCurrentLine(j);
+                    if (journalEntry.Lines.ShortName == cardCode)
+                    {
+                        hasVendor = true;
+                        break;
+                    }
+                    hasVendor = false;
+                }
+
+                if (!hasVendor)
+                {
+                    totalCount += 2;
+                    hasNoJounralEntryCount += 2;
                     continue;
                 }
 
@@ -113,19 +140,21 @@ namespace ServiceJournalEntryAp.SystemForms
                 if (!isPensionPayer)
                 {
                     notPayer += 2;
+                    totalCount += 2;
                     continue;
                 }
 
-                totalCount+= 2;
+             
 
                 double amount = 0;
-                var postingDate = DateTime.ParseExact(((EditText)matrix.GetCellSpecific("10000003", i)).Value, "yyyyMMdd",CultureInfo.InvariantCulture);
-      
+                var postingDate = DateTime.ParseExact(((EditText)matrix.GetCellSpecific("10000003", i)).Value, "yyyyMMdd", CultureInfo.InvariantCulture);
+
                 var amountCurrencyString = ((EditText)matrix.GetCellSpecific("10000045", i)).Value;
 
                 if (string.IsNullOrWhiteSpace(amountCurrencyString))
                 {
                     EmptyAmount += 2;
+                    totalCount += 2;
                     continue;
                 }
 
@@ -133,7 +162,7 @@ namespace ServiceJournalEntryAp.SystemForms
                 var curryencyString = amountCurrencyString.Split(' ')[1];
                 try
                 {
-                   amount = double.Parse(amountString, CultureInfo.InvariantCulture);
+                    amount = double.Parse(amountString, CultureInfo.InvariantCulture);
                 }
                 catch (Exception)
                 {
@@ -144,7 +173,7 @@ namespace ServiceJournalEntryAp.SystemForms
                 double pensionAmountPaymentOnAccount = Math.Round(amount / 0.784 * 0.02, 6);
 
                 Recordset recSet2 =
-                    (Recordset) DiManager.Company .GetBusinessObject(BoObjectTypes
+                    (Recordset)DiManager.Company.GetBusinessObject(BoObjectTypes
                         .BoRecordset);
                 Recordset recSet3 =
                     (Recordset)DiManager.Company.GetBusinessObject(BoObjectTypes
@@ -154,6 +183,7 @@ namespace ServiceJournalEntryAp.SystemForms
                 if (!recSet2.EoF)
                 {
                     addedAlready += 2;
+                    totalCount += 2;
                     continue;
                 }
 
@@ -173,10 +203,11 @@ namespace ServiceJournalEntryAp.SystemForms
                 {
                     string transId = DiManager.AddJournalEntry(DiManager.Company,
                         pensionAccCr, pensionAccDr, pensionControlAccCr, pensionControlAccDr, pensionAmountPaymentOnAccount,
-                        series, "BS " + bsNumber, postingDate,
+                        series, "BS " + bsNumber + " " + order, postingDate,
                         bplId, curryencyString);
                     query += $"'{transId}'";
                     successCount++;
+                    totalCount++;
 
                 }
                 catch (Exception e)
@@ -189,10 +220,11 @@ namespace ServiceJournalEntryAp.SystemForms
                 {
                     string transId = DiManager.AddJournalEntry(DiManager.Company, pensionAccCr,
                         "", pensionControlAccCr, cardCode, pensionAmountPaymentOnAccount, series,
-                        "OP " + bsNumber, postingDate, bplId,
+                        "BP " + bsNumber + " " + order, postingDate, bplId,
                         curryencyString);
                     query += $", '{transId}')";
                     successCount++;
+                    totalCount++;
 
                 }
                 catch (Exception e)
