@@ -34,18 +34,30 @@ namespace ServiceJournalEntryAp.SystemForms
         /// </summary>
         public override void OnInitializeFormEvents()
         {
+            this.ActivateAfter += new ActivateAfterHandler(this.Form_ActivateAfter);
+            this.ClickAfter += new ClickAfterHandler(this.Form_ClickAfter);
+
         }
 
         private SAPbouiCOM.Button Button0;
 
         private void OnCustomInitialize()
         {
-
+            Button0.Item.FontSize = 10;
         }
 
         private void Button0_PressedAfter(object sboObject, SAPbouiCOM.SBOItemEventArg pVal)
         {
-            Form activeForm = SAPbouiCOM.Framework.Application.SBO_Application.Forms.ActiveForm;
+            int successCount = 0;
+            int hasNoJounralEntryCount = 0;
+            int errorCount = 0;
+            int totalCount = 0;
+            int addedAlready = 0;
+            int hasNoBp = 0;
+            int notPayer = 0;
+            int EmptyAmount = 0;
+
+            Form activeForm = Application.SBO_Application.Forms.ActiveForm;
             var accountHeader = ((EditText)activeForm.Items.Item("10000013").Specific).Value;
             var bsNumber = ((EditText)activeForm.Items.Item("10000022").Specific).Value;
             string idNumber = activeForm.DataSources.DBDataSources.Item("OBNH").GetValue("IdNumber", 0);
@@ -55,8 +67,9 @@ namespace ServiceJournalEntryAp.SystemForms
             var series =  int.Parse(recSetSeries.Fields.Item("OutSeri").Value.ToString());
 
             var matrix = (Matrix)activeForm.Items.Item("10000036").Specific;
-            activeForm.Freeze(true);
+          
 
+            
             for (int i = 1; i <= matrix.RowCount; i++)
             {
                 if (((ComboBox)matrix.GetCellSpecific("10000037", i)).Selected == null)
@@ -67,11 +80,23 @@ namespace ServiceJournalEntryAp.SystemForms
                 string cardCode = activeForm.DataSources.DBDataSources.Item(0).GetValue("CardCode", i - 1);
                 string bplIdString = activeForm.DataSources.DBDataSources.Item(0).GetValue("BPLIdPmn", i - 1);
                 string sequence = activeForm.DataSources.DBDataSources.Item("OBNK").GetValue("Sequence", i - 1);
-            
+
+                int journalEntryTransId;
+                try
+                {
+                    journalEntryTransId = int.Parse(activeForm.DataSources.DBDataSources.Item(0).GetValue("JDTID", i - 1), CultureInfo.InvariantCulture);
+                }
+                catch (Exception e)
+                {
+                    hasNoJounralEntryCount+=2;
+                    continue;
+                }
 
                 int bplId = int.Parse(bplIdString);
                 if (string.IsNullOrWhiteSpace(cardCode))
                 {
+                    totalCount += 2;
+                    hasNoBp += 2;
                     continue;
                 }
 
@@ -87,12 +112,23 @@ namespace ServiceJournalEntryAp.SystemForms
                 string pensionControlAccCr = recSet.Fields.Item("U_PensionControlAccCr").Value.ToString();
                 if (!isPensionPayer)
                 {
-                    return;
+                    notPayer += 2;
+                    continue;
                 }
+
+                totalCount+= 2;
 
                 double amount = 0;
                 var postingDate = DateTime.ParseExact(((EditText)matrix.GetCellSpecific("10000003", i)).Value, "yyyyMMdd",CultureInfo.InvariantCulture);
+      
                 var amountCurrencyString = ((EditText)matrix.GetCellSpecific("10000045", i)).Value;
+
+                if (string.IsNullOrWhiteSpace(amountCurrencyString))
+                {
+                    EmptyAmount += 2;
+                    continue;
+                }
+
                 var amountString = amountCurrencyString.Split(' ')[0];
                 var curryencyString = amountCurrencyString.Split(' ')[1];
                 try
@@ -117,6 +153,7 @@ namespace ServiceJournalEntryAp.SystemForms
 
                 if (!recSet2.EoF)
                 {
+                    addedAlready += 2;
                     continue;
                 }
 
@@ -139,11 +176,13 @@ namespace ServiceJournalEntryAp.SystemForms
                         series, "BS " + bsNumber, postingDate,
                         bplId, curryencyString);
                     query += $"'{transId}'";
+                    successCount++;
 
                 }
                 catch (Exception e)
                 {
                     Application.SBO_Application.MessageBox(e.Message);
+                    errorCount++;
                 }
 
                 try
@@ -153,15 +192,35 @@ namespace ServiceJournalEntryAp.SystemForms
                         "OP " + bsNumber, postingDate, bplId,
                         curryencyString);
                     query += $", '{transId}')";
+                    successCount++;
+
                 }
                 catch (Exception e)
                 {
                     Application.SBO_Application.MessageBox(e.Message);
+                    errorCount++;
                 }
 
                 recSet3.DoQuery(DiManager.QueryHanaTransalte(query));
 
             }
+
+            Application.SBO_Application.MessageBox(
+                $"წარმატებული : {successCount}  {Environment.NewLine}  უკვე გაგატარებული : {addedAlready}  {Environment.NewLine} არ აქვს საჟურნალო გატარება : {hasNoJounralEntryCount} {Environment.NewLine} არ აქვს ბიზნეს პარტნიორი : {hasNoBp} {Environment.NewLine} არ არის გადამხდელი : {notPayer}   { Environment.NewLine} თანხა არ არის მითითებული : {EmptyAmount} {Environment.NewLine}  წარუმატებელი : {errorCount} {Environment.NewLine} სულ : {totalCount}");
+        }
+
+        private void Form_ActivateAfter(SBOItemEventArg pVal)
+        {
+            Form activeForm = Application.SBO_Application.Forms.ActiveForm;
+            var status = activeForm.DataSources.DBDataSources.Item("OBNH").GetValue("status", 0);
+            GetItem("Item_99").Enabled = status == "E";
+        }
+
+        private void Form_ClickAfter(SBOItemEventArg pVal)
+        {
+            Form activeForm = Application.SBO_Application.Forms.ActiveForm;
+            var status = activeForm.DataSources.DBDataSources.Item("OBNH").GetValue("status", 0);
+            GetItem("Item_99").Enabled = status == "E";
         }
     }
 }
