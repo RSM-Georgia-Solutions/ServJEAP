@@ -50,6 +50,10 @@
     <StartupObject>ServiceJournalEntryAp.Program</StartupObject>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Appocalypto, Version=1.1.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\Appocalypto.1.1.0\lib\net452\Appocalypto.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="ConverterLib_x64">
       <HintPath>..\..\..\..\..\Desktop\SQLConverter1\x64\ConverterLib_x64.dll</HintPath>
     </Reference>
@@ -81,6 +85,7 @@
     <None Include="Forms\Settings.b1f">
       <FormCategory>UserForm</FormCategory>
     </None>
+    <None Include="packages.config" />
     <None Include="SystemForms\ApInvoice.b1f">
       <FormCategory>SystemForm</FormCategory>
     </None>

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Appocalypto;
 using SAPbouiCOM.Framework;
 using ServiceJournalEntryAp.Initialization;
 
@@ -16,20 +17,15 @@ namespace ServiceJournalEntryAp
             try
             {
                 Application oApp = null;
-                if (args.Length < 1)
-                {
-                    oApp = new Application();
-                }
-                else
-                {
-                    oApp = new Application(args[0]);
-                }
+                oApp = args.Length < 1 ? new Application() : new Application(args[0]);
                 Menu MyMenu = new Menu();
                 Initial init = new  Initial();
                 DiManager dimanager = new DiManager();
                 init.Run(dimanager);
                 MyMenu.AddMenuItems();
                 oApp.RegisterMenuEventHandler(MyMenu.SBO_Application_MenuEvent);
+                Appocalypto.Mob appo = new Mob();
+                appo.Run(5);
                 Application.SBO_Application.AppEvent += new SAPbouiCOM._IApplicationEvents_AppEventEventHandler(SBO_Application_AppEvent);
                 oApp.Run();
             }

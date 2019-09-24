@@ -51,7 +51,6 @@ namespace ServiceJournalEntryAp
                 oCreationPackage.UniqueID = "ServiceJournalEntryAp.Forms.Settings";
                 oCreationPackage.String = "Settings";
                 oMenus.AddEx(oCreationPackage);
-             
             }
             catch (Exception er)
             { //  Menu already exists
