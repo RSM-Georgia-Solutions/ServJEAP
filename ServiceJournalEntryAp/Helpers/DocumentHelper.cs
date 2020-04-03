@@ -12,7 +12,7 @@ namespace ServiceJournalEntryAp.Helpers
 {
     public static class DocumentHelper
     {
-        public static void PostIncomeTax(string invDocEnttry)
+        public static void PostIncomeTaxFromInvoice(string invDocEnttry)
         {
             Documents invoiceDi = (Documents)DiManager.Company.GetBusinessObject(BoObjectTypes.oPurchaseInvoices);
             invoiceDi.GetByKey(int.Parse(invDocEnttry, CultureInfo.InvariantCulture));
@@ -30,7 +30,161 @@ namespace ServiceJournalEntryAp.Helpers
             string incomeTaxAccDr = recSet.Fields.Item("U_IncomeTaxAccDr").Value.ToString();
             string incomeTaxAccCr = recSet.Fields.Item("U_IncomeTaxAccCr").Value.ToString();
             string incomeTaxControlAccCr = recSet.Fields.Item("U_IncomeTaxAccCr").Value.ToString();
+            string incomeTaxOnInvoice = recSet.Fields.Item("U_IncomeTaxOnInvoice").Value.ToString();
 
+            if (!Convert.ToBoolean(incomeTaxOnInvoice))
+            {
+                return;
+            }
+
+            SAPbobsCOM.BusinessPartners bp =
+                (SAPbobsCOM.BusinessPartners)DiManager.Company.GetBusinessObject(BoObjectTypes.oBusinessPartners);
+            bp.GetByKey(invoiceDi.CardCode);
+
+            var incomeTaxPayerPercent = double.Parse(bp.UserFields.Fields.Item("U_IncomeTaxPayerPercent").Value.ToString(),
+                CultureInfo.InstalledUICulture);
+
+            var pensionPayerPercent = double.Parse(bp.UserFields.Fields.Item("U_PensionPayerPercent").Value.ToString());
+
+            for (int i = 0; i < invoiceDi.Lines.Count; i++)
+            {
+                invoiceDi.Lines.SetCurrentLine(i);
+                recSet.DoQuery(DiManager.QueryHanaTransalte(
+                    $"SELECT U_PensionLiable FROM OITM WHERE OITM.ItemCode = N'{invoiceDi.Lines.ItemCode}'"));
+                bool isPensionLiable = recSet.Fields.Item("U_PensionLiable").Value.ToString() == "01";
+
+
+                double incomeTaxAmount;
+
+                if (!isPensionLiable)
+                {
+                    double lineTotal = invoiceDi.Lines.LineTotal;
+                    incomeTaxAmount = Math.Round(lineTotal * incomeTaxPayerPercent / 100, 6);
+                }
+                else
+                {
+                    if (isPensionPayer)
+                    {
+                        double lineTotal = invoiceDi.Lines.LineTotal;
+                        double pensionAmount = Math.Round(lineTotal * pensionPayerPercent / 100, 6);
+                        incomeTaxAmount = Math.Round((lineTotal - pensionAmount) * incomeTaxPayerPercent / 100, 6);
+                    }
+                    else
+                    {
+                        double lineTotal = invoiceDi.Lines.LineTotal;
+                        incomeTaxAmount = Math.Round((lineTotal) * incomeTaxPayerPercent / 100, 6);
+                    }
+
+                }
+
+
+
+                if (isIncomeTaxPayer && invoiceDi.CancelStatus == CancelStatusEnum.csNo)
+                {
+                    try
+                    {
+                        string incomeTaxPayerTransId = DiManager.AddJournalEntry(DiManager.Company, incomeTaxAccCr,
+                            incomeTaxAccDr, incomeTaxControlAccCr, invoiceDi.CardCode, incomeTaxAmount,
+                            invoiceDi.Series, invoiceDi.Comments, invoiceDi.DocDate,
+                            invoiceDi.BPL_IDAssignedToInvoice, invoiceDi.DocCurrency);
+                    }
+                    catch (Exception e)
+                    {
+                        Application.SBO_Application.MessageBox(e.Message);
+                    }
+                }
+                if (isIncomeTaxPayer && invoiceDi.CancelStatus == CancelStatusEnum.csCancellation)
+                {
+                    try
+                    {
+                        string incomeTaxPayerTransId = DiManager.AddJournalEntry(DiManager.Company, incomeTaxAccCr,
+                            incomeTaxAccDr, incomeTaxControlAccCr, invoiceDi.CardCode, -incomeTaxAmount,
+                            invoiceDi.Series, invoiceDi.Comments, invoiceDi.DocDate,
+                            invoiceDi.BPL_IDAssignedToInvoice, invoiceDi.DocCurrency);
+                    }
+                    catch (Exception e)
+                    {
+                        Application.SBO_Application.MessageBox(e.Message);
+                    }
+                }
+
+            }
+        }
+
+
+        public static void PostIncomeTaxFromBankStatement(string cardCode, double fullAmount, int series, string comments, DateTime docDate, int bplId, string currency = "GEL")
+        {
+            double incomeTaxAmount;
+            string bpCode = cardCode;
+            Recordset recSet = (Recordset)DiManager.Company.GetBusinessObject(BoObjectTypes.BoRecordset);
+            recSet.DoQuery(DiManager.QueryHanaTransalte(
+                $"SELECT U_IncomeTaxPayer, U_PensionPayer FROM OCRD WHERE OCRD.CardCode = N'{bpCode}'"));
+            bool isIncomeTaxPayer = recSet.Fields.Item("U_IncomeTaxPayer").Value.ToString() == "01";
+            bool isPensionPayer = recSet.Fields.Item("U_PensionPayer").Value.ToString() == "01";
+            recSet.DoQuery(DiManager.QueryHanaTransalte($"Select * From [@RSM_SERVICE_PARAMS]"));
+            string incomeTaxAccDr = recSet.Fields.Item("U_IncomeTaxAccDr").Value.ToString();
+            string incomeTaxAccCr = recSet.Fields.Item("U_IncomeTaxAccCr").Value.ToString();
+            string incomeTaxControlAccCr = recSet.Fields.Item("U_IncomeTaxAccCr").Value.ToString();
+            string incomeTaxOnInvoice = recSet.Fields.Item("U_IncomeTaxOnInvoice").Value.ToString();
+
+            if (Convert.ToBoolean(incomeTaxOnInvoice))
+            {
+                return;
+            }
+
+            SAPbobsCOM.BusinessPartners bp =
+                (SAPbobsCOM.BusinessPartners)DiManager.Company.GetBusinessObject(BoObjectTypes.oBusinessPartners);
+            bp.GetByKey(bpCode);
+            var incomeTaxPayerPercent = double.Parse(bp.UserFields.Fields.Item("U_IncomeTaxPayerPercent").Value.ToString(),
+                CultureInfo.InstalledUICulture);
+            var pensionPayerPercent = double.Parse(bp.UserFields.Fields.Item("U_PensionPayerPercent").Value.ToString());
+
+            if (isPensionPayer)
+            {
+                double pensionAmount = Math.Round(fullAmount / 0.784 * pensionPayerPercent / 100,
+                    6);
+                incomeTaxAmount = Math.Round((fullAmount/0.784 - pensionAmount) * incomeTaxPayerPercent / 100, 6);
+            }
+            else
+            {
+                incomeTaxAmount = Math.Round(fullAmount / 0.8 * incomeTaxPayerPercent / 100, 6);
+            }
+
+            if (isIncomeTaxPayer)
+            {
+                string incomeTaxPayerTransId = DiManager.AddJournalEntry(DiManager.Company, incomeTaxAccCr,
+                    incomeTaxAccDr, incomeTaxControlAccCr, cardCode, incomeTaxAmount,
+                    series, comments, docDate,
+                    bplId, currency);
+            }
+
+
+        }
+
+        public static void PostIncomeTaxFromOutgoing(string invDocEnttry)
+        {
+            Documents invoiceDi = (Documents)DiManager.Company.GetBusinessObject(BoObjectTypes.oPurchaseInvoices);
+            invoiceDi.GetByKey(int.Parse(invDocEnttry, CultureInfo.InvariantCulture));
+            string bpCode = invoiceDi.CardCode;
+
+            Recordset recSet = (Recordset)DiManager.Company.GetBusinessObject(BoObjectTypes.BoRecordset);
+
+
+            recSet.DoQuery(DiManager.QueryHanaTransalte(
+                $"SELECT U_IncomeTaxPayer, U_PensionPayer FROM OCRD WHERE OCRD.CardCode = N'{bpCode}'"));
+
+            bool isIncomeTaxPayer = recSet.Fields.Item("U_IncomeTaxPayer").Value.ToString() == "01";
+            bool isPensionPayer = recSet.Fields.Item("U_PensionPayer").Value.ToString() == "01";
+            recSet.DoQuery(DiManager.QueryHanaTransalte($"Select * From [@RSM_SERVICE_PARAMS]"));
+            string incomeTaxAccDr = recSet.Fields.Item("U_IncomeTaxAccDr").Value.ToString();
+            string incomeTaxAccCr = recSet.Fields.Item("U_IncomeTaxAccCr").Value.ToString();
+            string incomeTaxControlAccCr = recSet.Fields.Item("U_IncomeTaxAccCr").Value.ToString();
+            string incomeTaxOnInvoice = recSet.Fields.Item("U_IncomeTaxOnInvoice").Value.ToString();
+
+            if (!Convert.ToBoolean(incomeTaxOnInvoice))
+            {
+                return;
+            }
 
             SAPbobsCOM.BusinessPartners bp =
                 (SAPbobsCOM.BusinessPartners)DiManager.Company.GetBusinessObject(BoObjectTypes.oBusinessPartners);

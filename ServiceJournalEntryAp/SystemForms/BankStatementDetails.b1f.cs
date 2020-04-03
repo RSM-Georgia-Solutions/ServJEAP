@@ -6,6 +6,7 @@ using System.Text;
 using SAPbobsCOM;
 using SAPbouiCOM;
 using SAPbouiCOM.Framework;
+using ServiceJournalEntryAp.Helpers;
 using ServiceJournalEntryAp.Initialization;
 using Application = SAPbouiCOM.Framework.Application;
 
@@ -48,6 +49,7 @@ namespace ServiceJournalEntryAp.SystemForms
 
         private void Button0_PressedAfter(object sboObject, SAPbouiCOM.SBOItemEventArg pVal)
         {
+            bool incomeTaxOnInvoice = false;
             int successCount = 0;
             int hasNoJounralEntryCount = 0;
             int errorCount = 0;
@@ -94,7 +96,10 @@ namespace ServiceJournalEntryAp.SystemForms
                     continue;
                 }
 
-
+                if (string.IsNullOrWhiteSpace(bplIdString))
+                {
+                    bplIdString = "235";
+                }
                 int bplId = int.Parse(bplIdString);
 
                 if (string.IsNullOrWhiteSpace(cardCode))
@@ -137,14 +142,8 @@ namespace ServiceJournalEntryAp.SystemForms
                 string pensionAccCr = recSet.Fields.Item("U_PensionAccCr").Value.ToString();
                 string pensionControlAccDr = recSet.Fields.Item("U_PensionControlAccDr").Value.ToString();
                 string pensionControlAccCr = recSet.Fields.Item("U_PensionControlAccCr").Value.ToString();
-                if (!isPensionPayer)
-                {
-                    notPayer += 2;
-                    totalCount += 2;
-                    continue;
-                }
-
-             
+                incomeTaxOnInvoice = Convert.ToBoolean(recSet.Fields.Item("U_IncomeTaxOnInvoice").Value.ToString());
+               
 
                 double amount = 0;
                 var postingDate = DateTime.ParseExact(((EditText)matrix.GetCellSpecific("10000003", i)).Value, "yyyyMMdd", CultureInfo.InvariantCulture);
@@ -171,7 +170,6 @@ namespace ServiceJournalEntryAp.SystemForms
                 }
 
                 double pensionAmountPaymentOnAccount = Math.Round(amount / 0.784 * 0.02, 6);
-
                 Recordset recSet2 =
                     (Recordset)DiManager.Company.GetBusinessObject(BoObjectTypes
                         .BoRecordset);
@@ -183,6 +181,17 @@ namespace ServiceJournalEntryAp.SystemForms
                 if (!recSet2.EoF)
                 {
                     addedAlready += 2;
+                    totalCount += 2;
+                    continue;
+                }
+                if (!incomeTaxOnInvoice)
+                {
+                    DocumentHelper.PostIncomeTaxFromBankStatement(cardCode, amount, series, "BP " + bsNumber + " " + order, postingDate, bplId, curryencyString);
+                }
+
+                if (!isPensionPayer)
+                {
+                    notPayer += 2;
                     totalCount += 2;
                     continue;
                 }
@@ -234,6 +243,8 @@ namespace ServiceJournalEntryAp.SystemForms
                 }
 
                 recSet3.DoQuery(DiManager.QueryHanaTransalte(query));
+
+              
 
             }
 

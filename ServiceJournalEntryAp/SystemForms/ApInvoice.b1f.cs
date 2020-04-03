@@ -1,19 +1,14 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
-using System.Text;
 using System.Xml;
-using SAPbobsCOM;
 using SAPbouiCOM;
 using SAPbouiCOM.Framework;
 using ServiceJournalEntryAp.Helpers;
 using ServiceJournalEntryAp.Initialization;
 using Application = SAPbouiCOM.Framework.Application;
 
-namespace ServiceJournalEntryAp
+namespace ServiceJournalEntryAp.SystemForms
 {
-    [FormAttribute("141", "SystemForms/ApInvoice.b1f")]
+    [Form("141", "SystemForms/ApInvoice.b1f")]
     class ApInvoice : SystemFormBase
     {
         public ApInvoice()
@@ -25,8 +20,7 @@ namespace ServiceJournalEntryAp
         /// </summary>
         public override void OnInitializeComponent()
         {
-            this.OnCustomInitialize();
-
+            OnCustomInitialize();
         }
 
         /// <summary>
@@ -35,12 +29,10 @@ namespace ServiceJournalEntryAp
         public override void OnInitializeFormEvents()
         {
             this.DataAddAfter += new DataAddAfterHandler(this.Form_DataAddAfter);
-
         }
 
-        private void Form_DataAddAfter(ref SAPbouiCOM.BusinessObjectInfo pVal)
+        private void Form_DataAddAfter(ref BusinessObjectInfo pVal)
         {
-
             if (pVal.ActionSuccess)
             {
                 var invObjectString = pVal.ObjectKey;
@@ -53,15 +45,12 @@ namespace ServiceJournalEntryAp
                 }
                 catch (Exception e)
                 {
-                    SAPbouiCOM.Framework.Application.SBO_Application.SetStatusBarMessage("Invalid Document Number",
-                        BoMessageTime.bmt_Short, true);
+                    Application.SBO_Application.SetStatusBarMessage("Invalid Document Number",
+                        BoMessageTime.bmt_Short);
                 }
-                DocumentHelper.PostIncomeTax(invDocEnttry);
+                DocumentHelper.PostIncomeTaxFromInvoice(invDocEnttry);
             }
-
         }
-
-       
 
         private void OnCustomInitialize()
         {

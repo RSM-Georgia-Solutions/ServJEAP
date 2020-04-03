@@ -24,6 +24,7 @@ namespace ServiceJournalEntryAp.Forms
         public string IncomeTaxAccCr { get; set; }
         public string IncomeTaxControlAccDr { get; set; }
         public string IncomeTaxControlAccCr { get; set; }
+        public string IncomeTaxOnInvoice { get; set; }
 
 
         /// <summary>
@@ -65,6 +66,7 @@ namespace ServiceJournalEntryAp.Forms
             this.EditText7 = ((SAPbouiCOM.EditText)(this.GetItem("Item_16").Specific));
             this.EditText7.ValidateAfter += new SAPbouiCOM._IEditTextEvents_ValidateAfterEventHandler(this.EditText7_ValidateAfter);
             this.EditText7.ChooseFromListBefore += new SAPbouiCOM._IEditTextEvents_ChooseFromListBeforeEventHandler(this.EditText7_ChooseFromListBefore);
+            this.CheckBox0 = ((SAPbouiCOM.CheckBox)(this.GetItem("Item_17").Specific));
             this.OnCustomInitialize();
 
         }
@@ -148,6 +150,7 @@ namespace ServiceJournalEntryAp.Forms
                     IncomeTaxAccCr = recSet.Fields.Item("U_IncomeTaxAccCr").Value.ToString();
                     IncomeTaxControlAccDr = recSet.Fields.Item("U_IncomeControlTaxAccDr").Value.ToString();
                     IncomeTaxControlAccCr = recSet.Fields.Item("U_IncomeControlTaxAccCr").Value.ToString();
+                    IncomeTaxOnInvoice = recSet.Fields.Item("U_IncomeTaxOnInvoice").Value.ToString();
 
                     _paramsForm.DataSources.UserDataSources.Item("UD_1").ValueEx = PensionAccDr;
                     _paramsForm.DataSources.UserDataSources.Item("UD_2").ValueEx = IncomeTaxAccDr;
@@ -157,6 +160,7 @@ namespace ServiceJournalEntryAp.Forms
                     _paramsForm.DataSources.UserDataSources.Item("UD_6").ValueEx = IncomeTaxAccCr;
                     _paramsForm.DataSources.UserDataSources.Item("UD_7").ValueEx = IncomeTaxControlAccDr;
                     _paramsForm.DataSources.UserDataSources.Item("UD_8").ValueEx = IncomeTaxControlAccCr;
+                    _paramsForm.DataSources.UserDataSources.Item("UD_9").ValueEx = IncomeTaxOnInvoice == "True"? "Y":"N";
 
                 }
             }
@@ -175,37 +179,38 @@ namespace ServiceJournalEntryAp.Forms
             {
                 Application.SBO_Application.SetStatusBarMessage("აირჩიეთ ან საკონტროლო ან სტანდარტული ანგარიში",
                     BoMessageTime.bmt_Short, true);
-                return;;
+                return; ;
             }
             if (!string.IsNullOrWhiteSpace(PensionAccCr) && !string.IsNullOrWhiteSpace(PensionAccControlCr))
             {
                 Application.SBO_Application.SetStatusBarMessage("აირჩიეთ ან საკონტროლო ან სტანდარტული ანგარიში",
                     BoMessageTime.bmt_Short, true);
-                return;;
+                return; ;
             }
             if (!string.IsNullOrWhiteSpace(IncomeTaxAccDr) && !string.IsNullOrWhiteSpace(IncomeTaxControlAccDr))
             {
                 Application.SBO_Application.SetStatusBarMessage("აირჩიეთ ან საკონტროლო ან სტანდარტული ანგარიში",
                     BoMessageTime.bmt_Short, true);
-                return;;
+                return; ;
             }
             if (!string.IsNullOrWhiteSpace(IncomeTaxAccCr) && !string.IsNullOrWhiteSpace(IncomeTaxControlAccCr))
             {
                 Application.SBO_Application.SetStatusBarMessage("აირჩიეთ ან საკონტროლო ან სტანდარტული ანგარიში",
                     BoMessageTime.bmt_Short, true);
-                return;;
+                return; ;
             }
 
+            IncomeTaxOnInvoice = CheckBox0.Checked.ToString();
 
             Recordset recSet = (Recordset)DiManager.Company.GetBusinessObject(BoObjectTypes.BoRecordset);
             recSet.DoQuery(DiManager.QueryHanaTransalte($"Select * From [@RSM_SERVICE_PARAMS]"));
             if (recSet.EoF)
             {
-                recSet.DoQuery(DiManager.QueryHanaTransalte($"INSERT INTO [@RSM_SERVICE_PARAMS] (U_PensionAccDr, U_PensionAccCr, U_PensionControlAccDr, U_PensionControlAccCr, U_IncomeTaxAccDr, U_IncomeTaxAccCr, U_IncomeControlTaxAccDr, U_IncomeControlTaxAccCr) VALUES (N'{PensionAccDr}',N'{PensionAccCr}',N'{PensionAccControlDr}',N'{PensionAccControlCr}',N'{IncomeTaxAccDr}',N'{IncomeTaxAccCr}',N'{IncomeTaxControlAccDr}',N'{IncomeTaxControlAccCr}')"));
+                recSet.DoQuery(DiManager.QueryHanaTransalte($"INSERT INTO [@RSM_SERVICE_PARAMS] (U_PensionAccDr, U_PensionAccCr, U_PensionControlAccDr, U_PensionControlAccCr, U_IncomeTaxAccDr, U_IncomeTaxAccCr, U_IncomeControlTaxAccDr, U_IncomeControlTaxAccCr,U_IncomeTaxOnInvoice) VALUES (N'{PensionAccDr}',N'{PensionAccCr}',N'{PensionAccControlDr}',N'{PensionAccControlCr}',N'{IncomeTaxAccDr}',N'{IncomeTaxAccCr}',N'{IncomeTaxControlAccDr}',N'{IncomeTaxControlAccCr}', N'{IncomeTaxOnInvoice}')"));
             }
             else
             {
-                recSet.DoQuery(DiManager.QueryHanaTransalte($"UPDATE [@RSM_SERVICE_PARAMS] SET U_PensionAccDr = N'{PensionAccDr}', U_PensionAccCr = N'{PensionAccCr}', U_PensionControlAccDr = N'{PensionAccControlDr}', U_PensionControlAccCr = N'{PensionAccControlCr}', U_IncomeTaxAccDr = N'{IncomeTaxAccDr}', U_IncomeTaxAccCr = N'{IncomeTaxAccCr}', U_IncomeControlTaxAccDr = N'{IncomeTaxControlAccDr}', U_IncomeControlTaxAccCr = N'{IncomeTaxControlAccCr}'"));
+                recSet.DoQuery(DiManager.QueryHanaTransalte($"UPDATE [@RSM_SERVICE_PARAMS] SET U_PensionAccDr = N'{PensionAccDr}', U_PensionAccCr = N'{PensionAccCr}', U_PensionControlAccDr = N'{PensionAccControlDr}', U_PensionControlAccCr = N'{PensionAccControlCr}', U_IncomeTaxAccDr = N'{IncomeTaxAccDr}', U_IncomeTaxAccCr = N'{IncomeTaxAccCr}', U_IncomeControlTaxAccDr = N'{IncomeTaxControlAccDr}', U_IncomeControlTaxAccCr = N'{IncomeTaxControlAccCr}', U_IncomeTaxOnInvoice = N'{IncomeTaxOnInvoice}'"));
             }
 
             SAPbouiCOM.Framework.Application.SBO_Application.StatusBar.SetSystemMessage("Success", BoMessageTime.bmt_Short, BoStatusBarMessageType.smt_Success);
@@ -325,5 +330,7 @@ namespace ServiceJournalEntryAp.Forms
             IncomeTaxControlAccCr = EditText7.Value;
 
         }
+
+        private CheckBox CheckBox0;
     }
 }

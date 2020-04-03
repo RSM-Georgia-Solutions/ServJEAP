@@ -15,7 +15,6 @@ namespace ServiceJournalEntryAp.Initialization
         public static Company Company => xCompany.Value;
         public static bool IsHana => IsHanax.Value;
 
-
         private static readonly Lazy<bool> IsHanax =
             new Lazy<bool>(() => Company.DbServerType.ToString() == "dst_HANADB" ? true : false);
 
