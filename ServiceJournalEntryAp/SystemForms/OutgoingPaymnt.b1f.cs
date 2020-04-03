@@ -78,9 +78,21 @@ namespace ServiceJournalEntryAp.SystemForms
                 XmlDocument xmlDoc2 = new XmlDocument();
                 xmlDoc2.LoadXml(x);
                 string paymentOnAcc = xmlDoc2.GetElementsByTagName("NoDocSum").Item(0).InnerText;
+
+                var price = "122$00";
+                var nfi = new NumberFormatInfo
+                {
+                    CurrencyDecimalSeparator = DiManager.Company.GetCompanyService().GetAdminInfo().DecimalSeparator,
+                    CurrencyGroupSeparator = DiManager.Company.GetCompanyService().GetAdminInfo().ThousandsSeparator
+                };
+
+               // var ok = decimal.Parse(price, NumberStyles.Currency, nfi);
+
+
+
                 if (!string.IsNullOrWhiteSpace(paymentOnAcc))
                 {
-                    if (double.Parse(paymentOnAcc) != 0)
+                    if (decimal.Parse(paymentOnAcc, NumberStyles.Currency, nfi) != 0)
                     {
 
                         double pensionAmountPaymentOnAccount = Math.Round(double.Parse(paymentOnAcc) / 0.784 * 0.02,
