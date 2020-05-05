@@ -12,7 +12,7 @@ using Application = SAPbouiCOM.Framework.Application;
 
 namespace ServiceJournalEntryAp.SystemForms
 {
-    [FormAttribute("10000005", "SystemForms/BankStatementDetails.b1f")]
+    [FormAttribute("10000005", "Forms/SystemForms/BankStatementDetails.b1f")]
     class BankStatementDetails : SystemFormBase
     {
         public BankStatementDetails()
@@ -169,7 +169,7 @@ namespace ServiceJournalEntryAp.SystemForms
                         BoMessageTime.bmt_Short, true);
                 }
 
-                double pensionAmountPaymentOnAccount = Math.Round(amount / 0.784 * 0.02, 6);
+                double pensionAmountPaymentOnAccount = Math.Round(amount / 0.98 * 0.02, 6);
                 Recordset recSet2 =
                     (Recordset)DiManager.Company.GetBusinessObject(BoObjectTypes
                         .BoRecordset);
@@ -243,9 +243,6 @@ namespace ServiceJournalEntryAp.SystemForms
                 }
 
                 recSet3.DoQuery(DiManager.QueryHanaTransalte(query));
-
-              
-
             }
 
             Application.SBO_Application.MessageBox(

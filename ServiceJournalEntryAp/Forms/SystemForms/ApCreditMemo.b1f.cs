@@ -1,17 +1,19 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 using System.Xml;
 using SAPbouiCOM;
 using SAPbouiCOM.Framework;
 using ServiceJournalEntryAp.Helpers;
-using ServiceJournalEntryAp.Initialization;
 using Application = SAPbouiCOM.Framework.Application;
 
-namespace ServiceJournalEntryAp.SystemForms
+namespace ServiceJournalEntryAp.Forms.SystemForms
 {
-    [Form("141", "SystemForms/ApInvoice.b1f")]
-    class ApInvoice : SystemFormBase
+    [FormAttribute("181", "Forms/SystemForms/ApCreditMemo.b1f")]
+    class ApCreditMemo : SystemFormBase
     {
-        public ApInvoice()
+        public ApCreditMemo()
         {
         }
 
@@ -20,7 +22,8 @@ namespace ServiceJournalEntryAp.SystemForms
         /// </summary>
         public override void OnInitializeComponent()
         {
-            OnCustomInitialize();
+            this.OnCustomInitialize();
+
         }
 
         /// <summary>
@@ -29,9 +32,10 @@ namespace ServiceJournalEntryAp.SystemForms
         public override void OnInitializeFormEvents()
         {
             this.DataAddAfter += new DataAddAfterHandler(this.Form_DataAddAfter);
+
         }
 
-        private void Form_DataAddAfter(ref BusinessObjectInfo pVal)
+        private void Form_DataAddAfter(ref SAPbouiCOM.BusinessObjectInfo pVal)
         {
             if (pVal.ActionSuccess)
             {
@@ -48,7 +52,7 @@ namespace ServiceJournalEntryAp.SystemForms
                     Application.SBO_Application.SetStatusBarMessage("Invalid Document Number",
                         BoMessageTime.bmt_Short);
                 }
-                DocumentHelper.PostIncomeTaxFromInvoice(invDocEnttry);
+                DocumentHelper.PostIncomeTaxFromCreditMemo(invDocEnttry);
             }
         }
 

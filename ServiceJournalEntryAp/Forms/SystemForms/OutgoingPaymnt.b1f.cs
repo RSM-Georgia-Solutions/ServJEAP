@@ -13,9 +13,10 @@ using Application = SAPbouiCOM.Framework.Application;
 
 namespace ServiceJournalEntryAp.SystemForms
 {
-    [FormAttribute("426", "SystemForms/OutgoingPaymnt.b1f")]
+    [FormAttribute("426", "Forms/SystemForms/OutgoingPaymnt.b1f")]
     class OutgoingPaymnt : SystemFormBase
     {
+
         public OutgoingPaymnt()
         {
         }
@@ -68,9 +69,13 @@ namespace ServiceJournalEntryAp.SystemForms
                 bool isIncomeTaxPayer = recSet.Fields.Item("U_IncomeTaxPayer").Value.ToString() == "01";
                 recSet.DoQuery(DiManager.QueryHanaTransalte($"Select * From [@RSM_SERVICE_PARAMS]"));
                 string pensionAccDr = recSet.Fields.Item("U_PensionAccDr").Value.ToString();
+                string incomeTaxAccDr = recSet.Fields.Item("U_IncomeTaxAccDr").Value.ToString();
+                string incomeTaxAccCr = recSet.Fields.Item("U_IncomeTaxAccCr").Value.ToString();
                 string pensionAccCr = recSet.Fields.Item("U_PensionAccCr").Value.ToString();
                 string pensionControlAccDr = recSet.Fields.Item("U_PensionControlAccDr").Value.ToString();
                 string pensionControlAccCr = recSet.Fields.Item("U_PensionControlAccCr").Value.ToString();
+                string incomeControlTaxAccDr = recSet.Fields.Item("U_IncomeControlTaxAccDr").Value.ToString();
+                string incomeControlTaxAccCr = recSet.Fields.Item("U_IncomeControlTaxAccCr").Value.ToString();
                 bool incomeTaxOnInvoice = Convert.ToBoolean(recSet.Fields.Item("U_IncomeTaxOnInvoice").Value.ToString());
 
 
@@ -86,7 +91,7 @@ namespace ServiceJournalEntryAp.SystemForms
                     CurrencyGroupSeparator = DiManager.Company.GetCompanyService().GetAdminInfo().ThousandsSeparator
                 };
 
-               // var ok = decimal.Parse(price, NumberStyles.Currency, nfi);
+                // var ok = decimal.Parse(price, NumberStyles.Currency, nfi);
 
 
 
@@ -95,6 +100,8 @@ namespace ServiceJournalEntryAp.SystemForms
                     if (decimal.Parse(paymentOnAcc, NumberStyles.Currency, nfi) != 0)
                     {
 
+                        //double pensionAmountPaymentOnAccount = Math.Round(double.Parse(paymentOnAcc) / 0.784 * 0.02,
+                        //     6);
                         double pensionAmountPaymentOnAccount = Math.Round(double.Parse(paymentOnAcc) / 0.784 * 0.02,
                             6);
                         double incomeTaxAmountPaymentOnAccount =
@@ -155,7 +162,7 @@ namespace ServiceJournalEntryAp.SystemForms
                             }
 
                             string transId2 = DiManager.AddJournalEntry(DiManager.Company,
-                                pensionAccCr,
+                                incomeTaxAccCr,
                                 "",
                                 pensionControlAccCr,
                                 outgoingPaymentDi.CardCode,
@@ -311,9 +318,9 @@ namespace ServiceJournalEntryAp.SystemForms
                         }
 
                         string incometaxpayertransid = DiManager.AddJournalEntry(DiManager.Company,
-                            pensionAccCr,
+                            incomeTaxAccCr,
                             "",
-                            pensionControlAccCr,
+                            incomeControlTaxAccCr,
                             outgoingPaymentDi.CardCode,
                             taxPayerAmount,
                             outgoingPaymentDi.Series,
@@ -369,89 +376,102 @@ namespace ServiceJournalEntryAp.SystemForms
                     bool isIncomeTaxPayer = recSet.Fields.Item("U_IncomeTaxPayer").Value.ToString() == "01";
                     recSet.DoQuery(DiManager.QueryHanaTransalte($"Select * From [@RSM_SERVICE_PARAMS]"));
                     string pensionAccDr = recSet.Fields.Item("U_PensionAccDr").Value.ToString();
+                    string incomeTaxAccDr = recSet.Fields.Item("U_IncomeTaxAccDr").Value.ToString();
+                    string incomeTaxAccCr = recSet.Fields.Item("U_IncomeTaxAccCr").Value.ToString();
                     string pensionAccCr = recSet.Fields.Item("U_PensionAccCr").Value.ToString();
                     string pensionControlAccDr = recSet.Fields.Item("U_PensionControlAccDr").Value.ToString();
                     string pensionControlAccCr = recSet.Fields.Item("U_PensionControlAccCr").Value.ToString();
+                    string incomeControlTaxAccDr = recSet.Fields.Item("U_IncomeControlTaxAccDr").Value.ToString();
+                    string incomeControlTaxAccCr = recSet.Fields.Item("U_IncomeControlTaxAccCr").Value.ToString();
                     bool incomeTaxOnInvoice =
                         Convert.ToBoolean(recSet.Fields.Item("U_IncomeTaxOnInvoice").Value.ToString());
 
-
+                    var nfi = new NumberFormatInfo
+                    {
+                        CurrencyDecimalSeparator = DiManager.Company.GetCompanyService().GetAdminInfo().DecimalSeparator,
+                        CurrencyGroupSeparator = DiManager.Company.GetCompanyService().GetAdminInfo().ThousandsSeparator
+                    };
                     var x = outgoingPaymentDi.GetAsXML();
                     XmlDocument xmlDoc2 = new XmlDocument();
                     xmlDoc2.LoadXml(x);
                     string paymentOnAcc = xmlDoc2.GetElementsByTagName("NoDocSum").Item(0).InnerText;
                     if (!string.IsNullOrWhiteSpace(paymentOnAcc))
                     {
-                        double pensionAmountPaymentOnAccount = Math.Round(double.Parse(paymentOnAcc) / 0.784 * 0.02,
-                            6);
-                        double incomeTaxAmountPaymentOnAccount =
-                            (double.Parse(paymentOnAcc) / 0.784 - pensionAmountPaymentOnAccount) * 0.2;
-                        if (pensionAmountPaymentOnAccount != 0)
+                        if (decimal.Parse(paymentOnAcc,
+                                NumberStyles.Currency,
+                                nfi) != 0)
                         {
-                            try
+                            double pensionAmountPaymentOnAccount = Math.Round(double.Parse(paymentOnAcc) / 0.784 * 0.02,
+                                6);
+                            double incomeTaxAmountPaymentOnAccount =
+                                (double.Parse(paymentOnAcc) / 0.784 - pensionAmountPaymentOnAccount) * 0.2;
+                            if (pensionAmountPaymentOnAccount != 0)
                             {
-                                if (isPensionPayer)
+                                try
                                 {
-                                    string transId = DiManager.AddJournalEntry(DiManager.Company,
-                                        pensionAccCr,
-                                        pensionAccDr,
-                                        pensionControlAccCr,
-                                        pensionControlAccDr,
-                                        -pensionAmountPaymentOnAccount,
-                                        outgoingPaymentDi.Series,
-                                        "OP " + outgoingPaymentDi.DocNum,
-                                        outgoingPaymentDi.DocDate,
-                                        outgoingPaymentDi.BPLID,
-                                        outgoingPaymentDi.DocCurrency);
+                                    if (isPensionPayer)
+                                    {
+                                        string transId = DiManager.AddJournalEntry(DiManager.Company,
+                                            pensionAccCr,
+                                            pensionAccDr,
+                                            pensionControlAccCr,
+                                            pensionControlAccDr,
+                                            -pensionAmountPaymentOnAccount,
+                                            outgoingPaymentDi.Series,
+                                            "OP " + outgoingPaymentDi.DocNum,
+                                            outgoingPaymentDi.DocDate,
+                                            outgoingPaymentDi.BPLID,
+                                            outgoingPaymentDi.DocCurrency);
+                                    }
+                                }
+                                catch (Exception e)
+                                {
+                                    Application.SBO_Application.MessageBox(e.Message);
+                                }
+
+                                try
+                                {
+                                    if (isPensionPayer)
+                                    {
+                                        string transId = DiManager.AddJournalEntry(DiManager.Company,
+                                            pensionAccCr,
+                                            "",
+                                            pensionControlAccCr,
+                                            outgoingPaymentDi.CardCode,
+                                            -pensionAmountPaymentOnAccount,
+                                            outgoingPaymentDi.Series,
+                                            "OP " + outgoingPaymentDi.DocNum,
+                                            outgoingPaymentDi.DocDate,
+                                            outgoingPaymentDi.BPLID,
+                                            outgoingPaymentDi.DocCurrency);
+                                    }
+                                }
+                                catch (Exception e)
+                                {
+                                    Application.SBO_Application.MessageBox(e.Message);
                                 }
                             }
-                            catch (Exception e)
-                            {
-                                Application.SBO_Application.MessageBox(e.Message);
-                            }
 
-                            try
+                            if (isIncomeTaxPayer && !incomeTaxOnInvoice)
                             {
-                                if (isPensionPayer)
+                                if (!isPensionPayer)
                                 {
-                                    string transId = DiManager.AddJournalEntry(DiManager.Company,
-                                        pensionAccCr,
-                                        "",
-                                        pensionControlAccCr,
-                                        outgoingPaymentDi.CardCode,
-                                        -pensionAmountPaymentOnAccount,
-                                        outgoingPaymentDi.Series,
-                                        "OP " + outgoingPaymentDi.DocNum,
-                                        outgoingPaymentDi.DocDate,
-                                        outgoingPaymentDi.BPLID,
-                                        outgoingPaymentDi.DocCurrency);
+                                    incomeTaxAmountPaymentOnAccount = Math.Round(double.Parse(paymentOnAcc) / 0.8 * 0.2,
+                                        6);
                                 }
-                            }
-                            catch (Exception e)
-                            {
-                                Application.SBO_Application.MessageBox(e.Message);
-                            }
-                        }
 
-                        if (isIncomeTaxPayer && !incomeTaxOnInvoice)
-                        {
-                            if (!isPensionPayer)
-                            {
-                                incomeTaxAmountPaymentOnAccount = Math.Round(double.Parse(paymentOnAcc) / 0.8 * 0.2,
-                                    6);
+                                string transId2 = DiManager.AddJournalEntry(DiManager.Company,
+                                    pensionAccCr,
+                                    "",
+                                    incomeControlTaxAccCr,
+                                    outgoingPaymentDi.CardCode,
+                                    -incomeTaxAmountPaymentOnAccount,
+                                    outgoingPaymentDi.Series,
+                                    "OP " + outgoingPaymentDi.DocNum,
+                                    outgoingPaymentDi.DocDate,
+                                    outgoingPaymentDi.BPLID,
+                                    outgoingPaymentDi.DocCurrency);
                             }
-
-                            string transId2 = DiManager.AddJournalEntry(DiManager.Company,
-                                pensionAccCr,
-                                "",
-                                pensionControlAccCr,
-                                outgoingPaymentDi.CardCode,
-                                -incomeTaxAmountPaymentOnAccount,
-                                outgoingPaymentDi.Series,
-                                "OP " + outgoingPaymentDi.DocNum,
-                                outgoingPaymentDi.DocDate,
-                                outgoingPaymentDi.BPLID,
-                                outgoingPaymentDi.DocCurrency);
                         }
                     }
 
@@ -604,9 +624,9 @@ namespace ServiceJournalEntryAp.SystemForms
                             }
 
                             string incometaxpayertransid = DiManager.AddJournalEntry(DiManager.Company,
-                                pensionAccCr,
+                                incomeTaxAccCr,
                                 "",
-                                pensionControlAccCr,
+                                incomeControlTaxAccCr,
                                 outgoingPaymentDi.CardCode,
                                 -taxPayerAmount,
                                 outgoingPaymentDi.Series,

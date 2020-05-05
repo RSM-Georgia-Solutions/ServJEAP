@@ -69,11 +69,14 @@
     <Reference Include="SAPBusinessOneSDK" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Forms\SystemForms\ApCreditMemo.b1f.cs">
+      <DependentUpon>ApCreditMemo.b1f</DependentUpon>
+    </Compile>
     <Compile Include="Helpers\DocumentHelper.cs" />
-    <Compile Include="SystemForms\BankStatementDetails.b1f.cs">
+    <Compile Include="Forms\SystemForms\BankStatementDetails.b1f.cs">
       <DependentUpon>BankStatementDetails.b1f</DependentUpon>
     </Compile>
-    <Compile Include="SystemForms\OutgoingPaymnt.b1f.cs">
+    <Compile Include="Forms\SystemForms\OutgoingPaymnt.b1f.cs">
       <DependentUpon>OutgoingPaymnt.b1f</DependentUpon>
     </Compile>
     <None Include="Forms\BusinessPartners.b1f">
@@ -85,11 +88,17 @@
     <None Include="Forms\Settings.b1f">
       <FormCategory>UserForm</FormCategory>
     </None>
-    <None Include="packages.config" />
-    <None Include="SystemForms\ApInvoice.b1f">
+    <None Include="Forms\SystemForms\ApCreditMemo.b1f">
       <FormCategory>SystemForm</FormCategory>
     </None>
-    <None Include="SystemForms\ApInvoice.b1f__orig_srf">
+    <None Include="Forms\SystemForms\ApCreditMemo.b1f__orig_srf">
+      <DependentUpon>ApCreditMemo.b1f</DependentUpon>
+    </None>
+    <None Include="packages.config" />
+    <None Include="Forms\SystemForms\ApInvoice.b1f">
+      <FormCategory>SystemForm</FormCategory>
+    </None>
+    <None Include="Forms\SystemForms\ApInvoice.b1f__orig_srf">
       <DependentUpon>ApInvoice.b1f</DependentUpon>
     </None>
     <Compile Include="Forms\BusinessPartners.b1f.cs">
@@ -101,7 +110,7 @@
     <Compile Include="Forms\Settings.b1f.cs">
       <DependentUpon>Settings.b1f</DependentUpon>
     </Compile>
-    <Compile Include="SystemForms\ApInvoice.b1f.cs">
+    <Compile Include="Forms\SystemForms\ApInvoice.b1f.cs">
       <DependentUpon>ApInvoice.b1f</DependentUpon>
     </Compile>
     <Compile Include="Initialization\CreateFields.cs" />
@@ -113,16 +122,16 @@
     <Compile Include="Program.cs" />
     <Compile Include="Menu.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <None Include="SystemForms\BankStatementDetails.b1f">
+    <None Include="Forms\SystemForms\BankStatementDetails.b1f">
       <FormCategory>SystemForm</FormCategory>
     </None>
-    <None Include="SystemForms\BankStatementDetails.b1f__orig_srf">
+    <None Include="Forms\SystemForms\BankStatementDetails.b1f__orig_srf">
       <DependentUpon>BankStatementDetails.b1f</DependentUpon>
     </None>
-    <None Include="SystemForms\OutgoingPaymnt.b1f">
+    <None Include="Forms\SystemForms\OutgoingPaymnt.b1f">
       <FormCategory>SystemForm</FormCategory>
     </None>
-    <None Include="SystemForms\OutgoingPaymnt.b1f__orig_srf">
+    <None Include="Forms\SystemForms\OutgoingPaymnt.b1f__orig_srf">
       <DependentUpon>OutgoingPaymnt.b1f</DependentUpon>
     </None>
   </ItemGroup>

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using Appocalypto;
 using SAPbouiCOM.Framework;
 using ServiceJournalEntryAp.Initialization;
@@ -26,6 +27,15 @@ namespace ServiceJournalEntryAp
                 oApp.RegisterMenuEventHandler(MyMenu.SBO_Application_MenuEvent);
                 Appocalypto.Mob appo = new Mob();
                 appo.Run(5);
+                var nfi = new NumberFormatInfo
+                {
+                    CurrencyDecimalSeparator = DiManager.Company.GetCompanyService().GetAdminInfo().DecimalSeparator,
+                    CurrencyGroupSeparator = DiManager.Company.GetCompanyService().GetAdminInfo().ThousandsSeparator
+                };
+                CultureInfo culture = CultureInfo.CurrentCulture.Clone() as CultureInfo;
+                culture.NumberFormat = nfi;
+                System.Threading.Thread.CurrentThread.CurrentCulture = culture;
+
                 Application.SBO_Application.AppEvent += new SAPbouiCOM._IApplicationEvents_AppEventEventHandler(SBO_Application_AppEvent);
                 oApp.Run();
             }
