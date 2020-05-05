@@ -54,7 +54,7 @@ namespace ServiceJournalEntryAp.Initialization
             vJE.ReferenceDate = DocDate;
             vJE.DueDate = DocDate;
             vJE.TaxDate = DocDate;
-            vJE.Memo = comment;
+            vJE.Memo = comment.Length < 50 ? comment : comment.Substring(0, 49);
 
             vJE.Lines.BPLID = BPLID; //branch
 
