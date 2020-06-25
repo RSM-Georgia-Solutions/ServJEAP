@@ -106,6 +106,13 @@ namespace ServiceJournalEntryAp.SystemForms
                             6);
                         double incomeTaxAmountPaymentOnAccount =
                             (double.Parse(paymentOnAcc) / 0.784 - pensionAmountPaymentOnAccount) * 0.2;
+
+                        if (!isIncomeTaxPayer)
+                        {
+                            pensionAmountPaymentOnAccount = Math.Round(double.Parse(paymentOnAcc) / 0.98 * 0.02,
+                                6);
+                        }
+
                         if (pensionAmountPaymentOnAccount != 0)
                         {
                             try
@@ -206,7 +213,13 @@ namespace ServiceJournalEntryAp.SystemForms
                                 }
                             }
 
-                            double pensionAmount = Math.Round(outgoingPaymentDi.Invoices.SumApplied / 0.784 * 0.02, 6);
+                            double pensionAmount = outgoingPaymentDi.DocCurrency != "GEL" ? Math.Round(outgoingPaymentDi.Invoices.AppliedFC / 0.784 * 0.02, 6) : Math.Round(outgoingPaymentDi.Invoices.SumApplied / 0.784 * 0.02, 6);
+
+                            if (!isIncomeTaxPayer)
+                            {
+                                pensionAmount = outgoingPaymentDi.DocCurrency != "GEL" ? Math.Round(outgoingPaymentDi.Invoices.AppliedFC / 0.98 * 0.02,6) : Math.Round(outgoingPaymentDi.Invoices.SumApplied / 0.98 * 0.02,
+                                    6);
+                            }
 
                             try
                             {
@@ -259,7 +272,12 @@ namespace ServiceJournalEntryAp.SystemForms
 
                     else
                     {
-                        double pensionAmount = Math.Round(outgoingPaymentDi.Invoices.SumApplied / 0.784 * 0.02, 6);
+                        double pensionAmount = outgoingPaymentDi.DocCurrency != "GEL" ? Math.Round(outgoingPaymentDi.Invoices.AppliedFC / 0.784 * 0.02, 6) : Math.Round(outgoingPaymentDi.Invoices.SumApplied / 0.784 * 0.02, 6);
+                        if (!isIncomeTaxPayer)
+                        {
+                            pensionAmount = outgoingPaymentDi.DocCurrency != "GEL" ? Math.Round(outgoingPaymentDi.Invoices.AppliedFC / 0.98 * 0.02,6) : Math.Round(outgoingPaymentDi.Invoices.SumApplied / 0.98 * 0.02,
+                                6);
+                        }
                         try
                         {
                             if (isPensionPayer)
@@ -310,11 +328,11 @@ namespace ServiceJournalEntryAp.SystemForms
                         {
                             continue;
                         }
-                        double pensionAmount2 = Math.Round(outgoingPaymentDi.Invoices.SumApplied / 0.784 * 0.02, 6);
+                        double pensionAmount2 = outgoingPaymentDi.DocCurrency != "GEL" ? Math.Round(outgoingPaymentDi.Invoices.AppliedFC / 0.784 * 0.02, 6) : Math.Round(outgoingPaymentDi.Invoices.SumApplied / 0.784 * 0.02, 6);
                         double taxPayerAmount = (outgoingPaymentDi.Invoices.SumApplied / 0.784 - pensionAmount2) * 0.2;
                         if (!isPensionPayer)
                         {
-                            taxPayerAmount = outgoingPaymentDi.Invoices.SumApplied / 0.8 * 0.2;
+                            taxPayerAmount = outgoingPaymentDi.DocCurrency != "GEL" ? outgoingPaymentDi.Invoices.AppliedFC / 0.8 * 0.2 : outgoingPaymentDi.Invoices.SumApplied / 0.8 * 0.2;
                         }
 
                         string incometaxpayertransid = DiManager.AddJournalEntry(DiManager.Company,
@@ -405,6 +423,13 @@ namespace ServiceJournalEntryAp.SystemForms
                                 6);
                             double incomeTaxAmountPaymentOnAccount =
                                 (double.Parse(paymentOnAcc) / 0.784 - pensionAmountPaymentOnAccount) * 0.2;
+
+                            if (!isIncomeTaxPayer)
+                            {
+                                pensionAmountPaymentOnAccount = Math.Round(double.Parse(paymentOnAcc) / 0.98 * 0.02,
+                                    6);
+                            }
+
                             if (pensionAmountPaymentOnAccount != 0)
                             {
                                 try
@@ -461,7 +486,7 @@ namespace ServiceJournalEntryAp.SystemForms
                                 }
 
                                 string transId2 = DiManager.AddJournalEntry(DiManager.Company,
-                                    pensionAccCr,
+                                    incomeTaxAccCr,
                                     "",
                                     incomeControlTaxAccCr,
                                     outgoingPaymentDi.CardCode,
@@ -507,8 +532,14 @@ namespace ServiceJournalEntryAp.SystemForms
                                     }
                                 }
 
-                                double pensionAmount = Math.Round(outgoingPaymentDi.Invoices.SumApplied / 0.784 * 0.02,
-                                    6);
+                                double pensionAmount = outgoingPaymentDi.DocCurrency != "GEL" ? Math.Round(outgoingPaymentDi.Invoices.AppliedFC / 0.784 * 0.02, 6) : Math.Round(outgoingPaymentDi.Invoices.SumApplied / 0.784 * 0.02, 6);
+
+                                if (!isIncomeTaxPayer)
+                                {
+                                    pensionAmount = outgoingPaymentDi.DocCurrency != "GEL" ? Math.Round(outgoingPaymentDi.Invoices.AppliedFC / 0.98 * 0.02,
+                                        6) : Math.Round(outgoingPaymentDi.Invoices.SumApplied / 0.98 * 0.02,
+                                        6);
+                                }
 
                                 try
                                 {
@@ -561,8 +592,15 @@ namespace ServiceJournalEntryAp.SystemForms
 
                         else
                         {
-                            double pensionAmount = Math.Round(outgoingPaymentDi.Invoices.SumApplied / 0.784 * 0.02,
+                            double pensionAmount = outgoingPaymentDi.DocCurrency != "GEL" ? Math.Round(outgoingPaymentDi.Invoices.AppliedFC / 0.784 * 0.02,
+                                6) : Math.Round(outgoingPaymentDi.Invoices.SumApplied / 0.784 * 0.02,
                                 6);
+                            if (!isIncomeTaxPayer)
+                            {
+                                pensionAmount = outgoingPaymentDi.DocCurrency != "GEL" ? Math.Round(outgoingPaymentDi.Invoices.AppliedFC / 0.98 * 0.02,
+                                    6) : Math.Round(outgoingPaymentDi.Invoices.SumApplied / 0.98 * 0.02,
+                                    6);
+                            }
                             try
                             {
                                 if (isPensionPayer)
@@ -615,12 +653,14 @@ namespace ServiceJournalEntryAp.SystemForms
                                 continue;
                             }
 
-                            double pensionAmount2 = Math.Round(outgoingPaymentDi.Invoices.SumApplied / 0.784 * 0.02,
+                            double pensionAmount2 = outgoingPaymentDi.DocCurrency != "GEL" ? Math.Round(outgoingPaymentDi.Invoices.AppliedFC / 0.784 * 0.02,
+                                6) : Math.Round(outgoingPaymentDi.Invoices.SumApplied / 0.784 * 0.02,
                                 6);
-                            double taxPayerAmount = (outgoingPaymentDi.Invoices.SumApplied / 0.784 - pensionAmount2) * 0.2;
+                            double taxPayerAmount = outgoingPaymentDi.DocCurrency != "GEL" ? (outgoingPaymentDi.Invoices.AppliedFC / 0.784 - pensionAmount2) * 0.2 : (outgoingPaymentDi.Invoices.SumApplied / 0.784 - pensionAmount2) * 0.2;
                             if (!isPensionPayer)
                             {
-                                taxPayerAmount = outgoingPaymentDi.Invoices.SumApplied / 0.8 * 0.2;
+                                taxPayerAmount = outgoingPaymentDi.DocCurrency != "GEL" ?
+                                    outgoingPaymentDi.Invoices.AppliedFC / 0.8 * 0.2 : outgoingPaymentDi.Invoices.SumApplied / 0.8 * 0.2;
                             }
 
                             string incometaxpayertransid = DiManager.AddJournalEntry(DiManager.Company,

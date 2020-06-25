@@ -52,26 +52,26 @@ namespace ServiceJournalEntryAp.Helpers
                 recSet.DoQuery(DiManager.QueryHanaTransalte(
                     $"SELECT U_PensionLiable FROM OITM WHERE OITM.ItemCode = N'{invoiceDi.Lines.ItemCode}'"));
                 bool isPensionLiable = recSet.Fields.Item("U_PensionLiable").Value.ToString() == "01";
-
+                bool isFc = invoiceDi.DocCurrency != "GEL";
 
                 double incomeTaxAmount;
 
                 if (!isPensionLiable)
                 {
-                    double lineTotal = invoiceDi.Lines.LineTotal;
+                    double lineTotal = isFc ? invoiceDi.Lines.RowTotalFC : invoiceDi.Lines.LineTotal;
                     incomeTaxAmount = Math.Round(lineTotal * incomeTaxPayerPercent / 100, 6);
                 }
                 else
                 {
                     if (isPensionPayer)
                     {
-                        double lineTotal = invoiceDi.Lines.LineTotal;
+                        double lineTotal = isFc ? invoiceDi.Lines.RowTotalFC : invoiceDi.Lines.LineTotal;
                         double pensionAmount = Math.Round(lineTotal * pensionPayerPercent / 100, 6);
                         incomeTaxAmount = Math.Round((lineTotal - pensionAmount) * incomeTaxPayerPercent / 100, 6);
                     }
                     else
                     {
-                        double lineTotal = invoiceDi.Lines.LineTotal;
+                        double lineTotal = isFc ? invoiceDi.Lines.RowTotalFC : invoiceDi.Lines.LineTotal;
                         incomeTaxAmount = Math.Round((lineTotal) * incomeTaxPayerPercent / 100, 6);
                     }
 
@@ -115,9 +115,9 @@ namespace ServiceJournalEntryAp.Helpers
             Documents invoiceDi = (Documents)DiManager.Company.GetBusinessObject(BoObjectTypes.oPurchaseInvoices);
             invoiceDi.GetByKey(int.Parse(invDocEnttry, CultureInfo.InvariantCulture));
             string bpCode = invoiceDi.CardCode;
+            bool isFc = invoiceDi.DocCurrency != "GEL";
 
             Recordset recSet = (Recordset)DiManager.Company.GetBusinessObject(BoObjectTypes.BoRecordset);
-
 
             recSet.DoQuery(DiManager.QueryHanaTransalte(
                 $"SELECT U_IncomeTaxPayer, U_PensionPayer FROM OCRD WHERE OCRD.CardCode = N'{bpCode}'"));
@@ -156,20 +156,20 @@ namespace ServiceJournalEntryAp.Helpers
 
                 if (!isPensionLiable)
                 {
-                    double lineTotal = invoiceDi.Lines.LineTotal;
+                    double lineTotal = isFc ? invoiceDi.Lines.RowTotalFC : invoiceDi.Lines.LineTotal;
                     incomeTaxAmount = Math.Round(lineTotal * incomeTaxPayerPercent / 100, 6);
                 }
                 else
                 {
                     if (isPensionPayer)
                     {
-                        double lineTotal = invoiceDi.Lines.LineTotal;
+                        double lineTotal = isFc ? invoiceDi.Lines.RowTotalFC : invoiceDi.Lines.LineTotal;
                         double pensionAmount = Math.Round(lineTotal * pensionPayerPercent / 100, 6);
                         incomeTaxAmount = Math.Round((lineTotal - pensionAmount) * incomeTaxPayerPercent / 100, 6);
                     }
                     else
                     {
-                        double lineTotal = invoiceDi.Lines.LineTotal;
+                        double lineTotal = isFc ? invoiceDi.Lines.RowTotalFC : invoiceDi.Lines.LineTotal;
                         incomeTaxAmount = Math.Round((lineTotal) * incomeTaxPayerPercent / 100, 6);
                     }
 
@@ -241,7 +241,13 @@ namespace ServiceJournalEntryAp.Helpers
             {
                 double pensionAmount = Math.Round(fullAmount / 0.784 * pensionPayerPercent / 100,
                     6);
-                incomeTaxAmount = Math.Round((fullAmount/0.784 - pensionAmount) * incomeTaxPayerPercent / 100, 6);
+                if (!isIncomeTaxPayer)
+                {
+                    pensionAmount = Math.Round(fullAmount / 0.98 * pensionPayerPercent / 100,
+                        6);
+                }
+                incomeTaxAmount = Math.Round((fullAmount / 0.784 - pensionAmount) * incomeTaxPayerPercent / 100, 6);
+
             }
             else
             {

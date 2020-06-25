@@ -137,13 +137,14 @@ namespace ServiceJournalEntryAp.SystemForms
                 recSet.DoQuery(DiManager.QueryHanaTransalte(
                     $"SELECT U_IncomeTaxPayer, U_PensionPayer FROM OCRD WHERE OCRD.CardCode = N'{bpCode}'"));
                 bool isPensionPayer = recSet.Fields.Item("U_PensionPayer").Value.ToString() == "01";
+                bool incomeTaxPayer = recSet.Fields.Item("U_IncomeTaxPayer").Value.ToString() == "01";
                 recSet.DoQuery(DiManager.QueryHanaTransalte($"Select * From [@RSM_SERVICE_PARAMS]"));
                 string pensionAccDr = recSet.Fields.Item("U_PensionAccDr").Value.ToString();
                 string pensionAccCr = recSet.Fields.Item("U_PensionAccCr").Value.ToString();
                 string pensionControlAccDr = recSet.Fields.Item("U_PensionControlAccDr").Value.ToString();
                 string pensionControlAccCr = recSet.Fields.Item("U_PensionControlAccCr").Value.ToString();
                 incomeTaxOnInvoice = Convert.ToBoolean(recSet.Fields.Item("U_IncomeTaxOnInvoice").Value.ToString());
-               
+
 
                 double amount = 0;
                 var postingDate = DateTime.ParseExact(((EditText)matrix.GetCellSpecific("10000003", i)).Value, "yyyyMMdd", CultureInfo.InvariantCulture);
@@ -168,8 +169,11 @@ namespace ServiceJournalEntryAp.SystemForms
                     Application.SBO_Application.SetStatusBarMessage("Invalid Amount : \"Outgoing Amt - Payment Currency\"",
                         BoMessageTime.bmt_Short, true);
                 }
-
-                double pensionAmountPaymentOnAccount = Math.Round(amount / 0.98 * 0.02, 6);
+                double pensionAmountPaymentOnAccount = Math.Round(amount / 0.784 * 0.02, 6);
+                if (!incomeTaxPayer)
+                {
+                     pensionAmountPaymentOnAccount = Math.Round(amount / 0.98 * 0.02, 6);
+                }
                 Recordset recSet2 =
                     (Recordset)DiManager.Company.GetBusinessObject(BoObjectTypes
                         .BoRecordset);
