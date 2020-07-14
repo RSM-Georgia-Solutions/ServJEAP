@@ -329,7 +329,7 @@ namespace ServiceJournalEntryAp.SystemForms
                             continue;
                         }
                         double pensionAmount2 = outgoingPaymentDi.DocCurrency != "GEL" ? Math.Round(outgoingPaymentDi.Invoices.AppliedFC / 0.784 * 0.02, 6) : Math.Round(outgoingPaymentDi.Invoices.SumApplied / 0.784 * 0.02, 6);
-                        double taxPayerAmount = (outgoingPaymentDi.Invoices.SumApplied / 0.784 - pensionAmount2) * 0.2;
+                        double taxPayerAmount = outgoingPaymentDi.DocCurrency != "GEL" ? (outgoingPaymentDi.Invoices.AppliedFC / 0.784 - pensionAmount2) * 0.2 : (outgoingPaymentDi.Invoices.SumApplied / 0.784 - pensionAmount2) * 0.2;
                         if (!isPensionPayer)
                         {
                             taxPayerAmount = outgoingPaymentDi.DocCurrency != "GEL" ? outgoingPaymentDi.Invoices.AppliedFC / 0.8 * 0.2 : outgoingPaymentDi.Invoices.SumApplied / 0.8 * 0.2;
