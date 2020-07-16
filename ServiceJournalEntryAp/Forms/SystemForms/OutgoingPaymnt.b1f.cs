@@ -441,6 +441,14 @@ namespace ServiceJournalEntryAp.SystemForms
                     XmlDocument xmlDoc2 = new XmlDocument();
                     xmlDoc2.LoadXml(x);
                     string paymentOnAcc = xmlDoc2.GetElementsByTagName("NoDocSum").Item(0).InnerText;
+
+
+                    if (outgoingPaymentDi.DocCurrency != "GEL")
+                    {
+                        string paymentOnAccFc = xmlDoc2.GetElementsByTagName("NoDocSumFC").Item(0).InnerText;
+                        paymentOnAcc = paymentOnAccFc;
+                    }
+
                     if (!string.IsNullOrWhiteSpace(paymentOnAcc))
                     {
                         if (decimal.Parse(paymentOnAcc,
