@@ -20,6 +20,8 @@ namespace ServiceJournalEntryAp
             oMenuItem = Application.SBO_Application.Menus.Item("43520"); // moudles'
 
 
+            //Connect SBO
+            RSM.Core.SDK.DI.DIApplication.DIConnect((SAPbobsCOM.Company)Application.SBO_Application.Company.GetDICompany());
 
             oCreationPackage.Type = SAPbouiCOM.BoMenuType.mt_POPUP;
             oCreationPackage.UniqueID = "ServiceJournalEntryAp";

@@ -21,8 +21,7 @@ namespace ServiceJournalEntryAp.Initialization
             diManager.AddField("OCRD", "IncomeTaxPayer", "საშემოსავლოს გადამხდელი", BoFieldTypes.db_Alpha, 250, validValues, true,true);
             diManager.AddField("OCRD", "PensionPayer", "საპენსიოს გადამხდელი", BoFieldTypes.db_Alpha, 250, validValues, true, true);
 
-            diManager.AddField("OCRD", "IncomeTaxPayerPercent", "საშემოსავლოს %", BoFieldTypes.db_Float, 33, false,
-                true);
+            diManager.AddField("OCRD", "IncomeTaxPayerPercent", "საშემოსავლოს %", BoFieldTypes.db_Float, 33, false, true);
             diManager.AddField("OCRD", "PensionPayerPercent", "საპენსიოს %", BoFieldTypes.db_Float, 33, false,
                 true);
             diManager.AddField("OITM", "PensionLiable", "ეკუთვნის საპენსიო", BoFieldTypes.db_Alpha, 250, validValues, true, true);

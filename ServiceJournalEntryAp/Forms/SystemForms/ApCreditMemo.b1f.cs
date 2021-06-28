@@ -7,12 +7,15 @@ using SAPbouiCOM;
 using SAPbouiCOM.Framework;
 using ServiceJournalEntryAp.Helpers;
 using Application = SAPbouiCOM.Framework.Application;
+using ServiceJournalEntryLogic;
+using ServiceJournalEntryAp.Controllers;
 
 namespace ServiceJournalEntryAp.Forms.SystemForms
 {
     [FormAttribute("181", "Forms/SystemForms/ApCreditMemo.b1f")]
     class ApCreditMemo : SystemFormBase
     {
+        public ApCreditMemoFormController controller { get; set; }
         public ApCreditMemo()
         {
         }
@@ -52,13 +55,15 @@ namespace ServiceJournalEntryAp.Forms.SystemForms
                     Application.SBO_Application.SetStatusBarMessage("Invalid Document Number",
                         BoMessageTime.bmt_Short);
                 }
-                DocumentHelper.PostIncomeTaxFromCreditMemo(invDocEnttry);
+
+                //DocumentHelper.PostIncomeTaxFromCreditMemo(invDocEnttry);
+                controller.DocumentHelper.PostIncomeTaxFromCreditMemo(invDocEnttry);
             }
         }
 
         private void OnCustomInitialize()
         {
-
+            controller = new ApCreditMemoFormController(RSM.Core.SDK.DI.DIApplication.Company, UIAPIRawForm);
         }
     }
 }

@@ -5,6 +5,10 @@ VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServiceJournalEntryAp", "ServiceJournalEntryAp\ServiceJournalEntryAp.csproj", "{58A2BEE0-1697-4CC1-A53E-B9C685D59864}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServiceJournalEntryLogic", "ServiceJournalEntryLogic\ServiceJournalEntryLogic.csproj", "{3A742B35-4EE8-47E5-8FED-381DD335CB8D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ServiceJournalEntryUnitTests", "ServiceJournalEntryUnitTests\ServiceJournalEntryUnitTests.csproj", "{98B93CDF-CFC5-46F6-835A-8EB678B78197}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +19,14 @@ Global
 		{58A2BEE0-1697-4CC1-A53E-B9C685D59864}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{58A2BEE0-1697-4CC1-A53E-B9C685D59864}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{58A2BEE0-1697-4CC1-A53E-B9C685D59864}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3A742B35-4EE8-47E5-8FED-381DD335CB8D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3A742B35-4EE8-47E5-8FED-381DD335CB8D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3A742B35-4EE8-47E5-8FED-381DD335CB8D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3A742B35-4EE8-47E5-8FED-381DD335CB8D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{98B93CDF-CFC5-46F6-835A-8EB678B78197}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{98B93CDF-CFC5-46F6-835A-8EB678B78197}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{98B93CDF-CFC5-46F6-835A-8EB678B78197}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{98B93CDF-CFC5-46F6-835A-8EB678B78197}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

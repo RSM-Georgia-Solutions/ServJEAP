@@ -1,35 +1,104 @@
-﻿using System;
+﻿using SAPbobsCOM;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using SAPbobsCOM;
-using SAPbouiCOM.Framework;
-using ServiceJournalEntryAp.Initialization;
 
-namespace ServiceJournalEntryAp.Helpers
+namespace ServiceJournalEntryLogic
 {
-    /// <summary>
-    /// წასაშლელეია
-    /// </summary>
-    public static class DocumentHelper
+    public class DocumentHelper : IDocumentHelper
     {
-        public static void PostIncomeTaxFromCreditMemo(string invDocEnttry)
+        private readonly Company _company;
+
+        public DocumentHelper(Company company)
         {
-            Documents invoiceDi = (Documents)DiManager.Company.GetBusinessObject(BoObjectTypes.oPurchaseCreditNotes);
-            invoiceDi.GetByKey(int.Parse(invDocEnttry, CultureInfo.InvariantCulture));
+            _company = company;
+        }
+
+        public string AddJournalEntry(Company _comp, string creditCode, string debitCode, string creditControlCode, string debitControlCode, double amount, int series, string comment, DateTime DocDate, int BPLID = 235, string currency = "GEL")
+        {
+            SAPbobsCOM.JournalEntries vJE =
+                (SAPbobsCOM.JournalEntries)_comp.GetBusinessObject(SAPbobsCOM.BoObjectTypes.oJournalEntries);
+
+            vJE.ReferenceDate = DocDate;
+            vJE.DueDate = DocDate;
+            vJE.TaxDate = DocDate;
+            vJE.Memo = comment.Length < 50 ? comment : comment.Substring(0, 49);
+
+            vJE.Lines.BPLID = BPLID; //branch
+
+            if (currency == "GEL")
+            {
+                vJE.Lines.Debit = amount;
+                vJE.Lines.FCDebit = 0;
+            }
+            else
+            {
+                vJE.Lines.FCCurrency = currency;
+                vJE.Lines.FCDebit = amount;
+            }
+
+            vJE.Lines.Credit = 0;
+            vJE.Lines.FCCredit = 0;
+
+            if (string.IsNullOrWhiteSpace(debitCode))
+            {
+                vJE.Lines.ShortName = debitControlCode;
+            }
+            else
+            {
+                vJE.Lines.AccountCode = debitCode;
+            }
+            vJE.Lines.Add();
+
+
+            vJE.Lines.BPLID = BPLID;
+            if (string.IsNullOrWhiteSpace(creditCode))
+            {
+                vJE.Lines.ShortName = creditControlCode;
+            }
+            else
+            {
+                vJE.Lines.AccountCode = creditCode;
+            }
+            vJE.Lines.Debit = 0;
+            vJE.Lines.FCDebit = 0;
+            if (currency == "GEL")
+            {
+                vJE.Lines.Credit = amount;
+                vJE.Lines.FCCredit = 0;
+            }
+            else
+            {
+                vJE.Lines.FCCurrency = currency;
+                vJE.Lines.FCCredit = amount;
+            }
+
+            vJE.Lines.Add();
+
+            int i = vJE.Add();
+            if (i == 0)
+            {
+                string transId = _comp.GetNewObjectKey();
+                return transId;
+            }
+            else
+            {
+                throw new Exception(_comp.GetLastErrorDescription());
+            }
+        }
+
+        public IEnumerable<Result> PostIncomeTaxFromCreditMemo(string invDocEntry)
+        {
+            List<Result> results = new List<Result>();
+            Documents invoiceDi = (Documents)_company.GetBusinessObject(BoObjectTypes.oPurchaseCreditNotes);
+            invoiceDi.GetByKey(int.Parse(invDocEntry, CultureInfo.InvariantCulture));
             string bpCode = invoiceDi.CardCode;
-
-            Recordset recSet = (Recordset)DiManager.Company.GetBusinessObject(BoObjectTypes.BoRecordset);
-
-
-            recSet.DoQuery(DiManager.QueryHanaTransalte(
-                $"SELECT U_IncomeTaxPayer, U_PensionPayer FROM OCRD WHERE OCRD.CardCode = N'{bpCode}'"));
-
+            Recordset recSet = (Recordset)_company.GetBusinessObject(BoObjectTypes.BoRecordset);
+            recSet.DoQuery(
+                $"SELECT U_IncomeTaxPayer, U_PensionPayer FROM OCRD WHERE OCRD.CardCode = N'{bpCode}'");
             bool isIncomeTaxPayer = recSet.Fields.Item("U_IncomeTaxPayer").Value.ToString() == "01";
             bool isPensionPayer = recSet.Fields.Item("U_PensionPayer").Value.ToString() == "01";
-            recSet.DoQuery(DiManager.QueryHanaTransalte($"Select * From [@RSM_SERVICE_PARAMS]"));
+            recSet.DoQuery($"Select * From [@RSM_SERVICE_PARAMS]");
             string incomeTaxAccDr = recSet.Fields.Item("U_IncomeTaxAccDr").Value.ToString();
             string incomeTaxAccCr = recSet.Fields.Item("U_IncomeTaxAccCr").Value.ToString();
             string incomeTaxControlAccCr = recSet.Fields.Item("U_IncomeTaxAccCr").Value.ToString();
@@ -37,11 +106,12 @@ namespace ServiceJournalEntryAp.Helpers
 
             if (!Convert.ToBoolean(incomeTaxOnInvoice))
             {
-                return;
+                results.Add(new Result { IsSuccessCode = false, StatusDescription = "არ არის საშემოსავლოს გადამხდელი" });
+                return results;
             }
 
-            SAPbobsCOM.BusinessPartners bp =
-                (SAPbobsCOM.BusinessPartners)DiManager.Company.GetBusinessObject(BoObjectTypes.oBusinessPartners);
+            BusinessPartners bp =
+                (BusinessPartners)_company.GetBusinessObject(BoObjectTypes.oBusinessPartners);
             bp.GetByKey(invoiceDi.CardCode);
 
             var incomeTaxPayerPercent = double.Parse(bp.UserFields.Fields.Item("U_IncomeTaxPayerPercent").Value.ToString(),
@@ -52,8 +122,8 @@ namespace ServiceJournalEntryAp.Helpers
             for (int i = 0; i < invoiceDi.Lines.Count; i++)
             {
                 invoiceDi.Lines.SetCurrentLine(i);
-                recSet.DoQuery(DiManager.QueryHanaTransalte(
-                    $"SELECT U_PensionLiable FROM OITM WHERE OITM.ItemCode = N'{invoiceDi.Lines.ItemCode}'"));
+                recSet.DoQuery(
+                    $"SELECT U_PensionLiable FROM OITM WHERE OITM.ItemCode = N'{invoiceDi.Lines.ItemCode}'");
                 bool isPensionLiable = recSet.Fields.Item("U_PensionLiable").Value.ToString() == "01";
                 bool isFc = invoiceDi.DocCurrency != "GEL";
 
@@ -80,54 +150,70 @@ namespace ServiceJournalEntryAp.Helpers
 
                 }
 
-
-
                 if (isIncomeTaxPayer && invoiceDi.CancelStatus == CancelStatusEnum.csNo)
                 {
                     try
                     {
-                        string incomeTaxPayerTransId = DiManager.AddJournalEntry(DiManager.Company, incomeTaxAccCr,
+                        string incomeTaxPayerTransId = AddJournalEntry(_company, incomeTaxAccCr,
                             incomeTaxAccDr, incomeTaxControlAccCr, invoiceDi.CardCode, -incomeTaxAmount,
                             invoiceDi.Series, invoiceDi.Comments, invoiceDi.DocDate,
                             invoiceDi.BPL_IDAssignedToInvoice, invoiceDi.DocCurrency);
+                        results.Add(new Result
+                        {
+                            IsSuccessCode = true,
+                            StatusDescription = "საშემოსავლოს გატარება კრედიტ მემო",
+                            CreatedDocumentEntry = incomeTaxPayerTransId,
+                            ObjectType = BoObjectTypes.oJournalEntries
+                        });
                     }
                     catch (Exception e)
                     {
-                        Application.SBO_Application.MessageBox(e.Message);
+                        results.Add(new Result { IsSuccessCode = false, StatusDescription = e.Message });
+                        return results;
                     }
                 }
                 if (isIncomeTaxPayer && invoiceDi.CancelStatus == CancelStatusEnum.csCancellation)
                 {
                     try
                     {
-                        string incomeTaxPayerTransId = DiManager.AddJournalEntry(DiManager.Company, incomeTaxAccCr,
+                        string incomeTaxPayerTransId = AddJournalEntry(_company, incomeTaxAccCr,
                             incomeTaxAccDr, incomeTaxControlAccCr, invoiceDi.CardCode, incomeTaxAmount,
                             invoiceDi.Series, invoiceDi.Comments, invoiceDi.DocDate,
                             invoiceDi.BPL_IDAssignedToInvoice, invoiceDi.DocCurrency);
+
+                        results.Add(new Result
+                        {
+                            IsSuccessCode = true,
+                            StatusDescription = "საშემოსავლოს გატარება (მაქენსელებელი) კრედიტ მემო",
+                            CreatedDocumentEntry = incomeTaxPayerTransId,
+                            ObjectType = BoObjectTypes.oJournalEntries
+                        });
                     }
                     catch (Exception e)
                     {
-                        Application.SBO_Application.MessageBox(e.Message);
+                        results.Add(new Result { IsSuccessCode = false, StatusDescription = e.Message });
+                        return results;
                     }
                 }
-
             }
+            return results;
         }
-        public static void PostIncomeTaxFromInvoice(string invDocEnttry)
+        public IEnumerable<Result> PostIncomeTaxFromInvoice(string invDocEntry)
         {
-            Documents invoiceDi = (Documents)DiManager.Company.GetBusinessObject(BoObjectTypes.oPurchaseInvoices);
-            invoiceDi.GetByKey(int.Parse(invDocEnttry, CultureInfo.InvariantCulture));
+            List<Result> results = new List<Result>();
+            Documents invoiceDi = (Documents)_company.GetBusinessObject(BoObjectTypes.oPurchaseInvoices);
+            invoiceDi.GetByKey(int.Parse(invDocEntry, CultureInfo.InvariantCulture));
             string bpCode = invoiceDi.CardCode;
             bool isFc = invoiceDi.DocCurrency != "GEL";
 
-            Recordset recSet = (Recordset)DiManager.Company.GetBusinessObject(BoObjectTypes.BoRecordset);
+            Recordset recSet = (Recordset)_company.GetBusinessObject(BoObjectTypes.BoRecordset);
 
-            recSet.DoQuery(DiManager.QueryHanaTransalte(
-                $"SELECT U_IncomeTaxPayer, U_PensionPayer FROM OCRD WHERE OCRD.CardCode = N'{bpCode}'"));
+            recSet.DoQuery(
+                $"SELECT U_IncomeTaxPayer, U_PensionPayer FROM OCRD WHERE OCRD.CardCode = N'{bpCode}'");
 
             bool isIncomeTaxPayer = recSet.Fields.Item("U_IncomeTaxPayer").Value.ToString() == "01";
             bool isPensionPayer = recSet.Fields.Item("U_PensionPayer").Value.ToString() == "01";
-            recSet.DoQuery(DiManager.QueryHanaTransalte($"Select * From [@RSM_SERVICE_PARAMS]"));
+            recSet.DoQuery($"Select * From [@RSM_SERVICE_PARAMS]");
             string incomeTaxAccDr = recSet.Fields.Item("U_IncomeTaxAccDr").Value.ToString();
             string incomeTaxAccCr = recSet.Fields.Item("U_IncomeTaxAccCr").Value.ToString();
             string incomeTaxControlAccCr = recSet.Fields.Item("U_IncomeTaxAccCr").Value.ToString();
@@ -135,11 +221,12 @@ namespace ServiceJournalEntryAp.Helpers
 
             if (!Convert.ToBoolean(incomeTaxOnInvoice))
             {
-                return;
+                results.Add(new Result { IsSuccessCode = false, StatusDescription = "არ არის საშემოსავლოს გადამხდელი" });
+                return results;
             }
 
             SAPbobsCOM.BusinessPartners bp =
-                (SAPbobsCOM.BusinessPartners)DiManager.Company.GetBusinessObject(BoObjectTypes.oBusinessPartners);
+                (SAPbobsCOM.BusinessPartners)_company.GetBusinessObject(BoObjectTypes.oBusinessPartners);
             bp.GetByKey(invoiceDi.CardCode);
 
             var incomeTaxPayerPercent = double.Parse(bp.UserFields.Fields.Item("U_IncomeTaxPayerPercent").Value.ToString(),
@@ -150,8 +237,8 @@ namespace ServiceJournalEntryAp.Helpers
             for (int i = 0; i < invoiceDi.Lines.Count; i++)
             {
                 invoiceDi.Lines.SetCurrentLine(i);
-                recSet.DoQuery(DiManager.QueryHanaTransalte(
-                    $"SELECT U_PensionLiable FROM OITM WHERE OITM.ItemCode = N'{invoiceDi.Lines.ItemCode}'"));
+                recSet.DoQuery(
+                    $"SELECT U_PensionLiable FROM OITM WHERE OITM.ItemCode = N'{invoiceDi.Lines.ItemCode}'");
                 bool isPensionLiable = recSet.Fields.Item("U_PensionLiable").Value.ToString() == "01";
 
 
@@ -184,105 +271,66 @@ namespace ServiceJournalEntryAp.Helpers
                 {
                     try
                     {
-                        string incomeTaxPayerTransId = DiManager.AddJournalEntry(DiManager.Company, incomeTaxAccCr,
+                        string incomeTaxPayerTransId = AddJournalEntry(_company, incomeTaxAccCr,
                             incomeTaxAccDr, incomeTaxControlAccCr, invoiceDi.CardCode, incomeTaxAmount,
                             invoiceDi.Series, invoiceDi.Comments, invoiceDi.DocDate,
                             invoiceDi.BPL_IDAssignedToInvoice, invoiceDi.DocCurrency);
+                        results.Add(new Result
+                        {
+                            IsSuccessCode = true,
+                            StatusDescription = "საშემოსავლოს გატარება ინვოისი",
+                            CreatedDocumentEntry = incomeTaxPayerTransId,
+                            ObjectType = BoObjectTypes.oJournalEntries
+                        });
                     }
                     catch (Exception e)
                     {
-                        Application.SBO_Application.MessageBox(e.Message);
+                        results.Add(new Result { IsSuccessCode = false, StatusDescription = e.Message });
+                        return results;
                     }
                 }
                 if (isIncomeTaxPayer && invoiceDi.CancelStatus == CancelStatusEnum.csCancellation)
                 {
                     try
                     {
-                        string incomeTaxPayerTransId = DiManager.AddJournalEntry(DiManager.Company, incomeTaxAccCr,
+                        string incomeTaxPayerTransId = AddJournalEntry(_company, incomeTaxAccCr,
                             incomeTaxAccDr, incomeTaxControlAccCr, invoiceDi.CardCode, -incomeTaxAmount,
                             invoiceDi.Series, invoiceDi.Comments, invoiceDi.DocDate,
                             invoiceDi.BPL_IDAssignedToInvoice, invoiceDi.DocCurrency);
+                        results.Add(new Result
+                        {
+                            IsSuccessCode = true,
+                            StatusDescription = "საშემოსავლოს გატარება (მაქენსელებელი) ინვოისი",
+                            CreatedDocumentEntry = incomeTaxPayerTransId,
+                            ObjectType = BoObjectTypes.oJournalEntries
+                        });
                     }
                     catch (Exception e)
                     {
-                        Application.SBO_Application.MessageBox(e.Message);
+                        results.Add(new Result { IsSuccessCode = false, StatusDescription = e.Message });
+                        return results;
                     }
                 }
 
             }
+            return results;
         }
-
-
-        public static void PostIncomeTaxFromBankStatement(string cardCode, double fullAmount, int series, string comments, DateTime docDate, int bplId, string currency = "GEL")
+        public IEnumerable<Result> PostIncomeTaxFromOutgoing(string invDocEntry)
         {
-            double incomeTaxAmount;
-            string bpCode = cardCode;
-            Recordset recSet = (Recordset)DiManager.Company.GetBusinessObject(BoObjectTypes.BoRecordset);
-            recSet.DoQuery(DiManager.QueryHanaTransalte(
-                $"SELECT U_IncomeTaxPayer, U_PensionPayer FROM OCRD WHERE OCRD.CardCode = N'{bpCode}'"));
-            bool isIncomeTaxPayer = recSet.Fields.Item("U_IncomeTaxPayer").Value.ToString() == "01";
-            bool isPensionPayer = recSet.Fields.Item("U_PensionPayer").Value.ToString() == "01";
-            recSet.DoQuery(DiManager.QueryHanaTransalte($"Select * From [@RSM_SERVICE_PARAMS]"));
-            string incomeTaxAccDr = recSet.Fields.Item("U_IncomeTaxAccDr").Value.ToString();
-            string incomeTaxAccCr = recSet.Fields.Item("U_IncomeTaxAccCr").Value.ToString();
-            string incomeTaxControlAccCr = recSet.Fields.Item("U_IncomeTaxAccCr").Value.ToString();
-            string incomeTaxOnInvoice = recSet.Fields.Item("U_IncomeTaxOnInvoice").Value.ToString();
-
-            if (Convert.ToBoolean(incomeTaxOnInvoice))
-            {
-                return;
-            }
-
-            SAPbobsCOM.BusinessPartners bp =
-                (SAPbobsCOM.BusinessPartners)DiManager.Company.GetBusinessObject(BoObjectTypes.oBusinessPartners);
-            bp.GetByKey(bpCode);
-            var incomeTaxPayerPercent = double.Parse(bp.UserFields.Fields.Item("U_IncomeTaxPayerPercent").Value.ToString(),
-                CultureInfo.InstalledUICulture);
-            var pensionPayerPercent = double.Parse(bp.UserFields.Fields.Item("U_PensionPayerPercent").Value.ToString());
-
-            if (isPensionPayer)
-            {
-                double pensionAmount = Math.Round(fullAmount / 0.784 * pensionPayerPercent / 100,
-                    6);
-                if (!isIncomeTaxPayer)
-                {
-                    pensionAmount = Math.Round(fullAmount / 0.98 * pensionPayerPercent / 100,
-                        6);
-                }
-                incomeTaxAmount = Math.Round((fullAmount / 0.784 - pensionAmount) * incomeTaxPayerPercent / 100, 6);
-
-            }
-            else
-            {
-                incomeTaxAmount = Math.Round(fullAmount / 0.8 * incomeTaxPayerPercent / 100, 6);
-            }
-
-            if (isIncomeTaxPayer)
-            {
-                string incomeTaxPayerTransId = DiManager.AddJournalEntry(DiManager.Company, incomeTaxAccCr,
-                    incomeTaxAccDr, incomeTaxControlAccCr, cardCode, incomeTaxAmount,
-                    series, comments, docDate,
-                    bplId, currency);
-            }
-
-
-        }
-
-        public static void PostIncomeTaxFromOutgoing(string invDocEnttry)
-        {
-            Documents invoiceDi = (Documents)DiManager.Company.GetBusinessObject(BoObjectTypes.oPurchaseInvoices);
-            invoiceDi.GetByKey(int.Parse(invDocEnttry, CultureInfo.InvariantCulture));
+            List<Result> results = new List<Result>();
+            Documents invoiceDi = (Documents)_company.GetBusinessObject(BoObjectTypes.oPurchaseInvoices);
+            invoiceDi.GetByKey(int.Parse(invDocEntry, CultureInfo.InvariantCulture));
             string bpCode = invoiceDi.CardCode;
 
-            Recordset recSet = (Recordset)DiManager.Company.GetBusinessObject(BoObjectTypes.BoRecordset);
+            Recordset recSet = (Recordset)_company.GetBusinessObject(BoObjectTypes.BoRecordset);
 
 
-            recSet.DoQuery(DiManager.QueryHanaTransalte(
-                $"SELECT U_IncomeTaxPayer, U_PensionPayer FROM OCRD WHERE OCRD.CardCode = N'{bpCode}'"));
+            recSet.DoQuery(
+                $"SELECT U_IncomeTaxPayer, U_PensionPayer FROM OCRD WHERE OCRD.CardCode = N'{bpCode}'");
 
             bool isIncomeTaxPayer = recSet.Fields.Item("U_IncomeTaxPayer").Value.ToString() == "01";
             bool isPensionPayer = recSet.Fields.Item("U_PensionPayer").Value.ToString() == "01";
-            recSet.DoQuery(DiManager.QueryHanaTransalte($"Select * From [@RSM_SERVICE_PARAMS]"));
+            recSet.DoQuery($"Select * From [@RSM_SERVICE_PARAMS]");
             string incomeTaxAccDr = recSet.Fields.Item("U_IncomeTaxAccDr").Value.ToString();
             string incomeTaxAccCr = recSet.Fields.Item("U_IncomeTaxAccCr").Value.ToString();
             string incomeTaxControlAccCr = recSet.Fields.Item("U_IncomeTaxAccCr").Value.ToString();
@@ -290,11 +338,12 @@ namespace ServiceJournalEntryAp.Helpers
 
             if (!Convert.ToBoolean(incomeTaxOnInvoice))
             {
-                return;
+                results.Add(new Result { IsSuccessCode = false, StatusDescription = "საშემოსავლოს გატარება ადახდაზე ალამი არ არის მონიშნული" });
+                return results;
             }
 
             SAPbobsCOM.BusinessPartners bp =
-                (SAPbobsCOM.BusinessPartners)DiManager.Company.GetBusinessObject(BoObjectTypes.oBusinessPartners);
+                (SAPbobsCOM.BusinessPartners)_company.GetBusinessObject(BoObjectTypes.oBusinessPartners);
             bp.GetByKey(invoiceDi.CardCode);
 
             var incomeTaxPayerPercent = double.Parse(bp.UserFields.Fields.Item("U_IncomeTaxPayerPercent").Value.ToString(),
@@ -305,8 +354,8 @@ namespace ServiceJournalEntryAp.Helpers
             for (int i = 0; i < invoiceDi.Lines.Count; i++)
             {
                 invoiceDi.Lines.SetCurrentLine(i);
-                recSet.DoQuery(DiManager.QueryHanaTransalte(
-                    $"SELECT U_PensionLiable FROM OITM WHERE OITM.ItemCode = N'{invoiceDi.Lines.ItemCode}'"));
+                recSet.DoQuery(
+                    $"SELECT U_PensionLiable FROM OITM WHERE OITM.ItemCode = N'{invoiceDi.Lines.ItemCode}'");
                 bool isPensionLiable = recSet.Fields.Item("U_PensionLiable").Value.ToString() == "01";
 
 
@@ -339,56 +388,74 @@ namespace ServiceJournalEntryAp.Helpers
                 {
                     try
                     {
-                        string incomeTaxPayerTransId = DiManager.AddJournalEntry(DiManager.Company, incomeTaxAccCr,
+                        string incomeTaxPayerTransId = AddJournalEntry(_company, incomeTaxAccCr,
                             incomeTaxAccDr, incomeTaxControlAccCr, invoiceDi.CardCode, incomeTaxAmount,
                             invoiceDi.Series, invoiceDi.Comments, invoiceDi.DocDate,
                             invoiceDi.BPL_IDAssignedToInvoice, invoiceDi.DocCurrency);
+                        results.Add(new Result
+                        {
+                            IsSuccessCode = true,
+                            StatusDescription = "საშემოსავლოს გატარება გამავალი გადახდა",
+                            CreatedDocumentEntry = incomeTaxPayerTransId,
+                            ObjectType = BoObjectTypes.oJournalEntries
+                        });
                     }
                     catch (Exception e)
                     {
-                        Application.SBO_Application.MessageBox(e.Message);
+                        results.Add(new Result { IsSuccessCode = false, StatusDescription = e.Message });
+                        return results;
                     }
                 }
                 if (isIncomeTaxPayer && invoiceDi.CancelStatus == CancelStatusEnum.csCancellation)
                 {
                     try
                     {
-                        string incomeTaxPayerTransId = DiManager.AddJournalEntry(DiManager.Company, incomeTaxAccCr,
+                        string incomeTaxPayerTransId = AddJournalEntry(_company, incomeTaxAccCr,
                             incomeTaxAccDr, incomeTaxControlAccCr, invoiceDi.CardCode, -incomeTaxAmount,
                             invoiceDi.Series, invoiceDi.Comments, invoiceDi.DocDate,
                             invoiceDi.BPL_IDAssignedToInvoice, invoiceDi.DocCurrency);
+
+                        results.Add(new Result
+                        {
+                            IsSuccessCode = true,
+                            StatusDescription = "საშემოსავლოს გატარება გამავალი გადახდა დაქენესელებული",
+                            CreatedDocumentEntry = incomeTaxPayerTransId,
+                            ObjectType = BoObjectTypes.oJournalEntries
+                        });
                     }
                     catch (Exception e)
                     {
-                        Application.SBO_Application.MessageBox(e.Message);
+                        results.Add(new Result { IsSuccessCode = false, StatusDescription = e.Message });
+                        return results;
                     }
                 }
 
             }
+            return results;
         }
-
-        public static void PostPension(string invoiceDocentry)
+        public IEnumerable<Result> PostPension(string invDocEntry)
         {
-            Documents invoiceDi = (Documents)DiManager.Company.GetBusinessObject(BoObjectTypes.oPurchaseInvoices);
-            invoiceDi.GetByKey(int.Parse(invoiceDocentry, CultureInfo.InvariantCulture));
+            List<Result> results = new List<Result>();
+            Documents invoiceDi = (Documents)_company.GetBusinessObject(BoObjectTypes.oPurchaseInvoices);
+            invoiceDi.GetByKey(int.Parse(invDocEntry, CultureInfo.InvariantCulture));
             string bpCode = invoiceDi.CardCode;
 
-            Recordset recSet = (Recordset)DiManager.Company.GetBusinessObject(BoObjectTypes.BoRecordset);
+            Recordset recSet = (Recordset)_company.GetBusinessObject(BoObjectTypes.BoRecordset);
 
 
-            recSet.DoQuery(DiManager.QueryHanaTransalte(
-                $"SELECT U_IncomeTaxPayer, U_PensionPayer FROM OCRD WHERE OCRD.CardCode = N'{bpCode}'"));
+            recSet.DoQuery(
+                $"SELECT U_IncomeTaxPayer, U_PensionPayer FROM OCRD WHERE OCRD.CardCode = N'{bpCode}'");
 
             bool isPensionPayer = recSet.Fields.Item("U_PensionPayer").Value.ToString() == "01";
 
-            recSet.DoQuery(DiManager.QueryHanaTransalte($"Select * From [@RSM_SERVICE_PARAMS]"));
+            recSet.DoQuery($"Select * From [@RSM_SERVICE_PARAMS]");
             string pensionAccDr = recSet.Fields.Item("U_PensionAccDr").Value.ToString();
             string pensionAccCr = recSet.Fields.Item("U_PensionAccCr").Value.ToString();
             string pensionControlAccDr = recSet.Fields.Item("U_PensionControlAccDr").Value.ToString();
             string pensionControlAccCr = recSet.Fields.Item("U_PensionControlAccCr").Value.ToString();
 
             SAPbobsCOM.BusinessPartners bp =
-                (SAPbobsCOM.BusinessPartners)DiManager.Company.GetBusinessObject(BoObjectTypes.oBusinessPartners);
+                (SAPbobsCOM.BusinessPartners)_company.GetBusinessObject(BoObjectTypes.oBusinessPartners);
             bp.GetByKey(invoiceDi.CardCode);
 
             var incomeTaxPayerPercent = double.Parse(bp.UserFields.Fields.Item("U_IncomeTaxPayerPercent").Value.ToString(),
@@ -399,8 +466,8 @@ namespace ServiceJournalEntryAp.Helpers
             for (int i = 0; i < invoiceDi.Lines.Count; i++)
             {
                 invoiceDi.Lines.SetCurrentLine(i);
-                recSet.DoQuery(DiManager.QueryHanaTransalte(
-                    $"SELECT U_PensionLiable FROM OITM WHERE OITM.ItemCode = N'{invoiceDi.Lines.ItemCode}'"));
+                recSet.DoQuery(
+                    $"SELECT U_PensionLiable FROM OITM WHERE OITM.ItemCode = N'{invoiceDi.Lines.ItemCode}'");
                 bool isPensionLiable = recSet.Fields.Item("U_PensionLiable").Value.ToString() == "01";
                 if (!isPensionLiable)
                 {
@@ -415,30 +482,52 @@ namespace ServiceJournalEntryAp.Helpers
                     //invoiceDi.CancelStatus == CancelStatusEnum.csNo
                     try
                     {
-                        string incometaxpayertransidcomp = DiManager.AddJournalEntry(DiManager.Company,
+                        string incometaxpayertransidcomp = AddJournalEntry(_company,
                             pensionAccCr, pensionAccDr, pensionControlAccCr, pensionControlAccDr, pensionAmount,
                             invoiceDi.Series, invoiceDi.Comments, invoiceDi.DocDate,
                             invoiceDi.BPL_IDAssignedToInvoice, invoiceDi.DocCurrency);
+                        results.Add(new Result
+                        {
+                            IsSuccessCode = true,
+                            StatusDescription = "საპენსიოს გატარება ინვოისი",
+                            CreatedDocumentEntry = incometaxpayertransidcomp,
+                            ObjectType = BoObjectTypes.oJournalEntries
+                        });
                     }
                     catch (Exception e)
                     {
-                        Application.SBO_Application.MessageBox(e.Message);
+                        results.Add(new Result { IsSuccessCode = false, StatusDescription = e.Message });
+                        return results;
                     }
 
                     try
                     {
-                        string incometaxpayertransid = DiManager.AddJournalEntry(DiManager.Company, pensionAccCr,
+                        string incometaxpayertransid = AddJournalEntry(_company, pensionAccCr,
                             "", pensionControlAccCr, invoiceDi.CardCode, pensionAmount, invoiceDi.Series,
                             invoiceDi.Comments, invoiceDi.DocDate, invoiceDi.BPL_IDAssignedToInvoice,
                             invoiceDi.DocCurrency);
+                        results.Add(new Result
+                        {
+                            IsSuccessCode = true,
+                            StatusDescription = "საპენსიოს გატარება ინვოისი",
+                            CreatedDocumentEntry = incometaxpayertransid,
+                            ObjectType = BoObjectTypes.oJournalEntries
+                        });
                     }
                     catch (Exception e)
                     {
-                        Application.SBO_Application.MessageBox(e.Message);
+
+                        results.Add(new Result { IsSuccessCode = false, StatusDescription = e.Message });
+                        return results;
                     }
                 }
+                else
+                {
+                    results.Add(new Result { IsSuccessCode = false, StatusDescription = "არ არის საპენსიოს გადამხდელი" });
+                    return results;
+                }
             }
+            return results;
         }
-
     }
 }

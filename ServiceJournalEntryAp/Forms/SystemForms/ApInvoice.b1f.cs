@@ -5,12 +5,15 @@ using SAPbouiCOM.Framework;
 using ServiceJournalEntryAp.Helpers;
 using ServiceJournalEntryAp.Initialization;
 using Application = SAPbouiCOM.Framework.Application;
+using ServiceJournalEntryAp.Controllers;
 
 namespace ServiceJournalEntryAp.SystemForms
 {
     [Form("141", "Forms/SystemForms/ApInvoice.b1f")]
     class ApInvoice : SystemFormBase
     {
+        public ApInvoiceFormController controller { get; set; }
+
         public ApInvoice()
         {
         }
@@ -48,13 +51,14 @@ namespace ServiceJournalEntryAp.SystemForms
                     Application.SBO_Application.SetStatusBarMessage("Invalid Document Number",
                         BoMessageTime.bmt_Short);
                 }
-                DocumentHelper.PostIncomeTaxFromInvoice(invDocEnttry);
+                //DocumentHelper.PostIncomeTaxFromInvoice(invDocEnttry);
+                controller.DocumentHelper.PostIncomeTaxFromInvoice(invDocEnttry);
             }
         }
 
         private void OnCustomInitialize()
         {
-
+            controller = new ApInvoiceFormController(RSM.Core.SDK.DI.DIApplication.Company, UIAPIRawForm);
         }
     }
 }
