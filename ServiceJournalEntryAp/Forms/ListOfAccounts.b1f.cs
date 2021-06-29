@@ -1,16 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using SAPbouiCOM.Framework;
-using ServiceJournalEntryAp.Initialization;
+﻿using SAPbouiCOM.Framework;
+using ServiceJournalEntryAp.Controllers;
+using ServiceJournalEntryLogic.Extensions;
 
 namespace ServiceJournalEntryAp.Forms
 {
     [FormAttribute("ServiceJournalEntryAp.Forms.ListOfAccounts", "Forms/ListOfAccounts.b1f")]
     class ListOfAccounts : UserFormBase
     {
-
+        public ListOfAccountsFormController controller { get; set; }
         private readonly Settings _exciseParams;
         private readonly string _AccName;
 
@@ -46,7 +43,16 @@ namespace ServiceJournalEntryAp.Forms
 
         private void OnCustomInitialize()
         {
-            Grid0.DataTable.ExecuteQuery(DiManager.QueryHanaTransalte($"SELECT AcctCode, AcctName FROM OACT WHERE Postable = 'Y'"));
+            controller = new ListOfAccountsFormController(RSM.Core.SDK.DI.DIApplication.Company, UIAPIRawForm);
+
+            string query = $"SELECT AcctCode, AcctName FROM OACT WHERE Postable = 'Y'";
+
+            if (controller.oCompany.DbServerType == SAPbobsCOM.BoDataServerTypes.dst_HANADB)
+            {
+                query = RecordSetExtensions.TranslateQueryToHana(null, query);
+            }
+
+            Grid0.DataTable.ExecuteQuery(query);
         }
 
         private SAPbouiCOM.StaticText StaticText0;
@@ -54,7 +60,14 @@ namespace ServiceJournalEntryAp.Forms
 
         private void EditText0_KeyDownAfter(object sboObject, SAPbouiCOM.SBOItemEventArg pVal)
         {
-            Grid0.DataTable.ExecuteQuery(DiManager.QueryHanaTransalte($"SELECT AcctCode, AcctName FROM OACT WHERE Postable = 'Y' AND (AcctCode Like N'%{EditText0.Value}%' OR AcctName Like N'%{EditText0.Value}%')"));
+            string query = $"SELECT AcctCode, AcctName FROM OACT WHERE Postable = 'Y' AND (AcctCode Like N'%{EditText0.Value}%' OR AcctName Like N'%{EditText0.Value}%')";
+
+            if (controller.oCompany.DbServerType == SAPbobsCOM.BoDataServerTypes.dst_HANADB)
+            {
+                query = RecordSetExtensions.TranslateQueryToHana(null, query);
+            }
+
+            Grid0.DataTable.ExecuteQuery(query);
         }
 
         private void Grid0_DoubleClickAfter(object sboObject, SAPbouiCOM.SBOItemEventArg pVal)

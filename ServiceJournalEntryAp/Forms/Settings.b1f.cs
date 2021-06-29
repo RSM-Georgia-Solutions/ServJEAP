@@ -5,14 +5,17 @@ using System.Text;
 using SAPbobsCOM;
 using SAPbouiCOM;
 using SAPbouiCOM.Framework;
-using ServiceJournalEntryAp.Initialization;
 using Application = SAPbouiCOM.Framework.Application;
+using ServiceJournalEntryAp.Controllers;
+using ServiceJournalEntryLogic.Extensions;
 
 namespace ServiceJournalEntryAp.Forms
 {
     [FormAttribute("ServiceJournalEntryAp.Forms.Settings", "Forms/Settings.b1f")]
     class Settings : UserFormBase
     {
+        public SettingsFormController controller { get; set; }
+
         public Settings()
         {
         }
@@ -86,7 +89,7 @@ namespace ServiceJournalEntryAp.Forms
 
         private void OnCustomInitialize()
         {
-
+            controller = new SettingsFormController(RSM.Core.SDK.DI.DIApplication.Company, UIAPIRawForm);
         }
 
         private SAPbouiCOM.EditText EditText0;
@@ -138,8 +141,8 @@ namespace ServiceJournalEntryAp.Forms
             if (SAPbouiCOM.Framework.Application.SBO_Application.Forms.ActiveForm.Title == "პარამეტრები")
             {
                 _paramsForm = SAPbouiCOM.Framework.Application.SBO_Application.Forms.ActiveForm;
-                Recordset recSet = (Recordset)DiManager.Company.GetBusinessObject(BoObjectTypes.BoRecordset);
-                recSet.DoQuery(DiManager.QueryHanaTransalte($"Select * From [@RSM_SERVICE_PARAMS]"));
+                Recordset recSet = (Recordset)controller.oCompany.GetBusinessObject(BoObjectTypes.BoRecordset);
+                recSet.DoQuery2($"Select * From [@RSM_SERVICE_PARAMS]");
                 if (!recSet.EoF)
                 {
                     PensionAccDr = recSet.Fields.Item("U_PensionAccDr").Value.ToString();
@@ -202,15 +205,15 @@ namespace ServiceJournalEntryAp.Forms
 
             IncomeTaxOnInvoice = CheckBox0.Checked.ToString();
 
-            Recordset recSet = (Recordset)DiManager.Company.GetBusinessObject(BoObjectTypes.BoRecordset);
-            recSet.DoQuery(DiManager.QueryHanaTransalte($"Select * From [@RSM_SERVICE_PARAMS]"));
+            Recordset recSet = (Recordset)controller.oCompany.GetBusinessObject(BoObjectTypes.BoRecordset);
+            recSet.DoQuery2($"Select * From [@RSM_SERVICE_PARAMS]");
             if (recSet.EoF)
             {
-                recSet.DoQuery(DiManager.QueryHanaTransalte($"INSERT INTO [@RSM_SERVICE_PARAMS] (U_PensionAccDr, U_PensionAccCr, U_PensionControlAccDr, U_PensionControlAccCr, U_IncomeTaxAccDr, U_IncomeTaxAccCr, U_IncomeControlTaxAccDr, U_IncomeControlTaxAccCr,U_IncomeTaxOnInvoice) VALUES (N'{PensionAccDr}',N'{PensionAccCr}',N'{PensionAccControlDr}',N'{PensionAccControlCr}',N'{IncomeTaxAccDr}',N'{IncomeTaxAccCr}',N'{IncomeTaxControlAccDr}',N'{IncomeTaxControlAccCr}', N'{IncomeTaxOnInvoice}')"));
+                recSet.DoQuery2($"INSERT INTO [@RSM_SERVICE_PARAMS] (U_PensionAccDr, U_PensionAccCr, U_PensionControlAccDr, U_PensionControlAccCr, U_IncomeTaxAccDr, U_IncomeTaxAccCr, U_IncomeControlTaxAccDr, U_IncomeControlTaxAccCr,U_IncomeTaxOnInvoice) VALUES (N'{PensionAccDr}',N'{PensionAccCr}',N'{PensionAccControlDr}',N'{PensionAccControlCr}',N'{IncomeTaxAccDr}',N'{IncomeTaxAccCr}',N'{IncomeTaxControlAccDr}',N'{IncomeTaxControlAccCr}', N'{IncomeTaxOnInvoice}')");
             }
             else
             {
-                recSet.DoQuery(DiManager.QueryHanaTransalte($"UPDATE [@RSM_SERVICE_PARAMS] SET U_PensionAccDr = N'{PensionAccDr}', U_PensionAccCr = N'{PensionAccCr}', U_PensionControlAccDr = N'{PensionAccControlDr}', U_PensionControlAccCr = N'{PensionAccControlCr}', U_IncomeTaxAccDr = N'{IncomeTaxAccDr}', U_IncomeTaxAccCr = N'{IncomeTaxAccCr}', U_IncomeControlTaxAccDr = N'{IncomeTaxControlAccDr}', U_IncomeControlTaxAccCr = N'{IncomeTaxControlAccCr}', U_IncomeTaxOnInvoice = N'{IncomeTaxOnInvoice}'"));
+                recSet.DoQuery2($"UPDATE [@RSM_SERVICE_PARAMS] SET U_PensionAccDr = N'{PensionAccDr}', U_PensionAccCr = N'{PensionAccCr}', U_PensionControlAccDr = N'{PensionAccControlDr}', U_PensionControlAccCr = N'{PensionAccControlCr}', U_IncomeTaxAccDr = N'{IncomeTaxAccDr}', U_IncomeTaxAccCr = N'{IncomeTaxAccCr}', U_IncomeControlTaxAccDr = N'{IncomeTaxControlAccDr}', U_IncomeControlTaxAccCr = N'{IncomeTaxControlAccCr}', U_IncomeTaxOnInvoice = N'{IncomeTaxOnInvoice}'");
             }
 
             SAPbouiCOM.Framework.Application.SBO_Application.StatusBar.SetSystemMessage("Success", BoMessageTime.bmt_Short, BoStatusBarMessageType.smt_Success);

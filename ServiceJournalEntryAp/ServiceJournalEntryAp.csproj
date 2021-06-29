@@ -55,10 +55,6 @@
       <HintPath>..\packages\Appocalypto.1.1.0\lib\net452\Appocalypto.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="ConverterLib_x64, Version=1.0.0.0, Culture=neutral, processorArchitecture=AMD64">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>lib\ConverterLib_x64.dll</HintPath>
-    </Reference>
     <Reference Include="RSM.Core, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\RSM.SAPB1.SDK.1.0.1\lib\RSM.Core.dll</HintPath>
       <Private>True</Private>
@@ -90,13 +86,14 @@
     <Compile Include="Controllers\ApCreditMemoFormController.cs" />
     <Compile Include="Controllers\ApInvoiceFormController.cs" />
     <Compile Include="Controllers\BankStatementDetailsFormController.cs" />
+    <Compile Include="Controllers\BusinessPartnersFormController.cs" />
     <Compile Include="Controllers\FormController.cs" />
+    <Compile Include="Controllers\ListOfAccountsFormController.cs" />
     <Compile Include="Controllers\OutgoingPaymntFormController.cs" />
-    <Compile Include="Extensions\RecordSetExtensions.cs" />
+    <Compile Include="Controllers\SettingsFormController.cs" />
     <Compile Include="Forms\SystemForms\ApCreditMemo.b1f.cs">
       <DependentUpon>ApCreditMemo.b1f</DependentUpon>
     </Compile>
-    <Compile Include="Helpers\DocumentHelper.cs" />
     <Compile Include="Forms\SystemForms\BankStatementDetails.b1f.cs">
       <DependentUpon>BankStatementDetails.b1f</DependentUpon>
     </Compile>
@@ -137,12 +134,6 @@
     <Compile Include="Forms\SystemForms\ApInvoice.b1f.cs">
       <DependentUpon>ApInvoice.b1f</DependentUpon>
     </Compile>
-    <Compile Include="Initialization\CreateFields.cs" />
-    <Compile Include="Initialization\CreateTables.cs" />
-    <Compile Include="Initialization\DiManager.cs" />
-    <Compile Include="Initialization\FillData.cs" />
-    <Compile Include="Initialization\Initial.cs" />
-    <Compile Include="Initialization\IRunnable.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Menu.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -179,9 +170,11 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="lib\Antlr3.Runtime.dll" />
-    <Content Include="lib\ConverterLib_x64.dll" />
+    <Content Include="Media\income.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

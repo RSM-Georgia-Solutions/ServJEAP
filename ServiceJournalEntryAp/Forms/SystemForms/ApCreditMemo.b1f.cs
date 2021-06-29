@@ -5,7 +5,6 @@ using System.Text;
 using System.Xml;
 using SAPbouiCOM;
 using SAPbouiCOM.Framework;
-using ServiceJournalEntryAp.Helpers;
 using Application = SAPbouiCOM.Framework.Application;
 using ServiceJournalEntryLogic;
 using ServiceJournalEntryAp.Controllers;

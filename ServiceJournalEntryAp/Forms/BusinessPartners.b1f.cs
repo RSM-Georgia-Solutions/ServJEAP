@@ -1,16 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using SAPbouiCOM.Framework;
+﻿using SAPbouiCOM.Framework;
 using ServiceJournalEntryAp.Forms;
-using ServiceJournalEntryAp.Initialization;
+using ServiceJournalEntryAp.Controllers;
+using ServiceJournalEntryLogic.Extensions;
 
 namespace ServiceJournalEntryAp
 {
     [FormAttribute("ServiceJournalEntryAp.BusinessPartners", "Forms/BusinessPartners.b1f")]
     class BusinessPartners : UserFormBase
     {
+        public BusinessPartnersFormController controller { get; set; }
         private readonly Settings _exciseParams;
         private readonly string _AccName;
         public BusinessPartners(Settings exciseParams, string accName)
@@ -45,7 +43,16 @@ namespace ServiceJournalEntryAp
 
         private void OnCustomInitialize()
         {
-            Grid0.DataTable.ExecuteQuery(DiManager.QueryHanaTransalte($"SELECT CardCode, CardName FROM OCRD WHERE CardType = 'S'"));
+            controller = new BusinessPartnersFormController(RSM.Core.SDK.DI.DIApplication.Company, UIAPIRawForm);
+
+            string query = $"SELECT CardCode, CardName FROM OCRD WHERE CardType = 'S'";
+
+            if (controller.oCompany.DbServerType == SAPbobsCOM.BoDataServerTypes.dst_HANADB)
+            {
+                query = RecordSetExtensions.TranslateQueryToHana(null, query);
+            }
+
+            Grid0.DataTable.ExecuteQuery(query);
         }
 
         private SAPbouiCOM.StaticText StaticText0;
@@ -90,7 +97,13 @@ namespace ServiceJournalEntryAp
 
         private void EditText0_KeyDownAfter(object sboObject, SAPbouiCOM.SBOItemEventArg pVal)
         {
-            Grid0.DataTable.ExecuteQuery(DiManager.QueryHanaTransalte($"SELECT CardCode, CardName FROM OCRD WHERE CardType = 'S' AND (CardCode Like N'%{EditText0.Value}%' OR CardName Like N'%{EditText0.Value}%')"));
+            string query = $"SELECT CardCode, CardName FROM OCRD WHERE CardType = 'S' AND (CardCode Like N'%{EditText0.Value}%' OR CardName Like N'%{EditText0.Value}%')";
+            if (controller.oCompany.DbServerType == SAPbobsCOM.BoDataServerTypes.dst_HANADB)
+            {
+                query = RecordSetExtensions.TranslateQueryToHana(null, query);
+            }
+
+            Grid0.DataTable.ExecuteQuery(query);
         }
     }
 }

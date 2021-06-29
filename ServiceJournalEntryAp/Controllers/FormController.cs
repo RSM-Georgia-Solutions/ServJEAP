@@ -17,7 +17,7 @@ namespace ServiceJournalEntryAp.Controllers
         {
             oCompany = Company;
             oForm = Form;
-            DocumentHelper = new ServiceJournalEntryLogic.DocumentHelper(oCompany);
+            DocumentHelper = new ServiceJournalEntryLogic.DocumentHelper(oCompany, new ServiceJournalEntryLogic.Providers.SettingsProvider(oCompany));
         }
     }
 }

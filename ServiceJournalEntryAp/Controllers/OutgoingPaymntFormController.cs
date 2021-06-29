@@ -7,7 +7,7 @@ using SAPbobsCOM;
 using SAPbouiCOM;
 using System.Xml;
 using System.Globalization;
-using ServiceJournalEntryAp.Extensions;
+using ServiceJournalEntryLogic.Extensions;
 
 namespace ServiceJournalEntryAp.Controllers
 {

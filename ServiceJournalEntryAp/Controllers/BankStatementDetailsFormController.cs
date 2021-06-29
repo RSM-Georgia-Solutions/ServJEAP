@@ -5,7 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using SAPbobsCOM;
 using SAPbouiCOM;
-using ServiceJournalEntryAp.Extensions;
+using ServiceJournalEntryLogic.Extensions;
 using System.Globalization;
 
 namespace ServiceJournalEntryAp.Controllers

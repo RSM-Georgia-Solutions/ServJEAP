@@ -30,6 +30,7 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="ConverterLib_x64, Version=1.0.0.0, Culture=neutral, processorArchitecture=AMD64" />
     <Reference Include="RSM.Core, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\RSM.SAPB1.SDK.1.0.1\lib\RSM.Core.dll</HintPath>
       <Private>True</Private>
@@ -61,16 +62,25 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="DocumentHelper.cs" />
+    <Compile Include="Extensions\RecordSetExtensions.cs" />
     <Compile Include="IDocumentHelper.cs" />
     <Compile Include="Models\BspHisotry.cs" />
     <Compile Include="Models\Settings.cs" />
     <Compile Include="Models\UdfFIelds.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Providers\BspHistoryProvider.cs" />
+    <Compile Include="Providers\JournalEntriesProvider.cs" />
+    <Compile Include="Providers\SettingsProvider.cs" />
+    <Compile Include="Providers\UDTProvider.cs" />
     <Compile Include="Result.cs" />
     <Compile Include="Services\SetupService.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="lib\Antlr3.Runtime.dll" />
+    <Content Include="lib\ConverterLib_x64.dll" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

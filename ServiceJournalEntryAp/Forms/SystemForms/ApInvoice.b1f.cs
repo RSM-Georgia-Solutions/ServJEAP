@@ -2,10 +2,9 @@
 using System.Xml;
 using SAPbouiCOM;
 using SAPbouiCOM.Framework;
-using ServiceJournalEntryAp.Helpers;
-using ServiceJournalEntryAp.Initialization;
 using Application = SAPbouiCOM.Framework.Application;
 using ServiceJournalEntryAp.Controllers;
+using System.Linq;
 
 namespace ServiceJournalEntryAp.SystemForms
 {
@@ -52,7 +51,11 @@ namespace ServiceJournalEntryAp.SystemForms
                         BoMessageTime.bmt_Short);
                 }
                 //DocumentHelper.PostIncomeTaxFromInvoice(invDocEnttry);
-                controller.DocumentHelper.PostIncomeTaxFromInvoice(invDocEnttry);
+                var res = controller.DocumentHelper.PostIncomeTaxFromInvoice(invDocEnttry);
+                if(res.Any(x => x.IsSuccessCode == false))
+                {
+                    SAPbouiCOM.Framework.Application.SBO_Application.MessageBox(res.First(x => x.IsSuccessCode == false).StatusDescription);
+                }
             }
         }
 

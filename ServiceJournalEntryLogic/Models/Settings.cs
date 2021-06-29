@@ -30,7 +30,9 @@ namespace ServiceJournalEntryLogic.Models
         [Field(Description = "საშემოსავლოს ანგარიში", Type = BoFieldTypes.db_Alpha, Size = 20)]
         public string IncomeControlTaxAccCr { get; set; }
         [Field(Description = "საშემოსავლო ინვოისზე", Type = BoFieldTypes.db_Alpha, Size = 20)]
-        public string IncomeTaxOnInvoice { get; set; }
+        public bool IncomeTaxOnInvoice { get; set; }
+        [Field(Description = "გამოიყენე დოკუმენტის ანგარიში", Type = BoFieldTypes.db_Alpha, Size = 20)]
+        public bool UseDocControllAcc { get; set; }
 
         //diManager.AddField("RSM_SERVICE_PARAMS", "PensionAccDr", "საპენსიოს ანგარიში", BoFieldTypes.db_Alpha, 20, false);
         //diManager.AddField("RSM_SERVICE_PARAMS", "PensionAccCr", "საპენსიოს ანგარიში", BoFieldTypes.db_Alpha, 20, false);

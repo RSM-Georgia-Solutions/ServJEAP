@@ -7,8 +7,6 @@ using System.Xml;
 using SAPbobsCOM;
 using SAPbouiCOM;
 using SAPbouiCOM.Framework;
-using ServiceJournalEntryAp.Helpers;
-using ServiceJournalEntryAp.Initialization;
 using Application = SAPbouiCOM.Framework.Application;
 using ServiceJournalEntryAp.Controllers;
 

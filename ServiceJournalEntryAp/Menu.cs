@@ -20,15 +20,15 @@ namespace ServiceJournalEntryAp
             oMenuItem = Application.SBO_Application.Menus.Item("43520"); // moudles'
 
 
-            //Connect SBO
-            RSM.Core.SDK.DI.DIApplication.DIConnect((SAPbobsCOM.Company)Application.SBO_Application.Company.GetDICompany());
+            
 
             oCreationPackage.Type = SAPbouiCOM.BoMenuType.mt_POPUP;
             oCreationPackage.UniqueID = "ServiceJournalEntryAp";
             oCreationPackage.String = "ServiceJournalEntryAp";
             oCreationPackage.Enabled = true;
             oCreationPackage.Position = -1;
-            
+            oCreationPackage.Image = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location) + "\\Media\\income.png";
+
             oMenus = oMenuItem.SubMenus;
 
             try

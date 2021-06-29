@@ -33,7 +33,7 @@ namespace ServiceJournalEntryUnitTests
                                     $"UserName : {_company.UserName}," +
                                     $"CompanyDB : {_company.CompanyDB}");
             }
-            _documentHelper = new DocumentHelper(_company);
+            _documentHelper = new DocumentHelper(_company, new ServiceJournalEntryLogic.Providers.SettingsProvider(_company));
         }
 
         [TestMethod]
@@ -50,7 +50,7 @@ namespace ServiceJournalEntryUnitTests
         public void PostIncomeTaxFromInvoice_TakesId_ReturnsNotEmptyResult()
         {
             _company.StartTransaction();
-            var res = _documentHelper.PostIncomeTaxFromInvoice("14097");
+            var res = _documentHelper.PostIncomeTaxFromInvoice("14191");
             var message = res.FirstOrDefault()?.StatusDescription;
             Assert.AreNotEqual(0, res.Count());
             _company.EndTransaction(BoWfTransOpt.wf_RollBack);

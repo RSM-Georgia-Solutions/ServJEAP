@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace ServiceJournalEntryLogic.Models
 {
-    [Table(Name = "RSM_SERVICE_PARAMS", Description = "Service Entry Settings", Type = BoUTBTableType.bott_NoObjectAutoIncrement)]
+    [Table(Name = "RSM_BSP_HISTORY", Description = "BSP History", Type = BoUTBTableType.bott_NoObjectAutoIncrement)]
     public class BspHisotry : Table
     {
         [Field(Description = "ParentId", Type = BoFieldTypes.db_Alpha, Size = 202)]
