@@ -8,6 +8,7 @@ using SAPbouiCOM.Framework;
 using Application = SAPbouiCOM.Framework.Application;
 using ServiceJournalEntryAp.Controllers;
 using ServiceJournalEntryLogic.Extensions;
+using ServiceJournalEntryLogic.Providers;
 
 namespace ServiceJournalEntryAp.Forms
 {
@@ -28,6 +29,8 @@ namespace ServiceJournalEntryAp.Forms
         public string IncomeTaxControlAccDr { get; set; }
         public string IncomeTaxControlAccCr { get; set; }
         public string IncomeTaxOnInvoice { get; set; }
+        public string UseDocControllAcc { get; set; }
+        public SettingsProvider SettingsProvider { get; set; }
 
 
         /// <summary>
@@ -70,6 +73,8 @@ namespace ServiceJournalEntryAp.Forms
             this.EditText7.ValidateAfter += new SAPbouiCOM._IEditTextEvents_ValidateAfterEventHandler(this.EditText7_ValidateAfter);
             this.EditText7.ChooseFromListBefore += new SAPbouiCOM._IEditTextEvents_ChooseFromListBeforeEventHandler(this.EditText7_ChooseFromListBefore);
             this.CheckBox0 = ((SAPbouiCOM.CheckBox)(this.GetItem("Item_17").Specific));
+            this.CheckBox1 = ((SAPbouiCOM.CheckBox)(this.GetItem("Item_18").Specific));
+
             this.OnCustomInitialize();
 
         }
@@ -90,6 +95,7 @@ namespace ServiceJournalEntryAp.Forms
         private void OnCustomInitialize()
         {
             controller = new SettingsFormController(RSM.Core.SDK.DI.DIApplication.Company, UIAPIRawForm);
+            SettingsProvider = new SettingsProvider(RSM.Core.SDK.DI.DIApplication.Company);
         }
 
         private SAPbouiCOM.EditText EditText0;
@@ -141,19 +147,20 @@ namespace ServiceJournalEntryAp.Forms
             if (SAPbouiCOM.Framework.Application.SBO_Application.Forms.ActiveForm.Title == "პარამეტრები")
             {
                 _paramsForm = SAPbouiCOM.Framework.Application.SBO_Application.Forms.ActiveForm;
-                Recordset recSet = (Recordset)controller.oCompany.GetBusinessObject(BoObjectTypes.BoRecordset);
-                recSet.DoQuery2($"Select * From [@RSM_SERVICE_PARAMS]");
-                if (!recSet.EoF)
+
+                var settings = SettingsProvider.Get();
+                if (settings != null)
                 {
-                    PensionAccDr = recSet.Fields.Item("U_PensionAccDr").Value.ToString();
-                    PensionAccCr = recSet.Fields.Item("U_PensionAccCr").Value.ToString();
-                    PensionAccControlDr = recSet.Fields.Item("U_PensionControlAccDr").Value.ToString();
-                    PensionAccControlCr = recSet.Fields.Item("U_PensionControlAccCr").Value.ToString();
-                    IncomeTaxAccDr = recSet.Fields.Item("U_IncomeTaxAccDr").Value.ToString();
-                    IncomeTaxAccCr = recSet.Fields.Item("U_IncomeTaxAccCr").Value.ToString();
-                    IncomeTaxControlAccDr = recSet.Fields.Item("U_IncomeControlTaxAccDr").Value.ToString();
-                    IncomeTaxControlAccCr = recSet.Fields.Item("U_IncomeControlTaxAccCr").Value.ToString();
-                    IncomeTaxOnInvoice = recSet.Fields.Item("U_IncomeTaxOnInvoice").Value.ToString();
+                    PensionAccDr = settings.PensionAccDr;
+                    PensionAccCr = settings.PensionAccCr;
+                    PensionAccControlDr = settings.PensionControlAccDr;
+                    PensionAccControlCr = settings.PensionControlAccCr;
+                    IncomeTaxAccDr = settings.IncomeTaxAccDr;
+                    IncomeTaxAccCr = settings.IncomeTaxAccCr;
+                    IncomeTaxControlAccDr = settings.IncomeControlTaxAccDr;
+                    IncomeTaxControlAccCr = settings.IncomeControlTaxAccCr;
+                    IncomeTaxOnInvoice = settings.IncomeTaxOnInvoice.ToString();
+                    UseDocControllAcc = settings.UseDocControllAcc.ToString();
 
                     _paramsForm.DataSources.UserDataSources.Item("UD_1").ValueEx = PensionAccDr;
                     _paramsForm.DataSources.UserDataSources.Item("UD_2").ValueEx = IncomeTaxAccDr;
@@ -164,6 +171,7 @@ namespace ServiceJournalEntryAp.Forms
                     _paramsForm.DataSources.UserDataSources.Item("UD_7").ValueEx = IncomeTaxControlAccDr;
                     _paramsForm.DataSources.UserDataSources.Item("UD_8").ValueEx = IncomeTaxControlAccCr;
                     _paramsForm.DataSources.UserDataSources.Item("UD_9").ValueEx = IncomeTaxOnInvoice == "True"? "Y":"N";
+                    _paramsForm.DataSources.UserDataSources.Item("UD_10").ValueEx = UseDocControllAcc == "True"? "Y":"N";
 
                 }
             }
@@ -204,16 +212,17 @@ namespace ServiceJournalEntryAp.Forms
             }
 
             IncomeTaxOnInvoice = CheckBox0.Checked.ToString();
+            UseDocControllAcc = CheckBox1.Checked.ToString();
 
             Recordset recSet = (Recordset)controller.oCompany.GetBusinessObject(BoObjectTypes.BoRecordset);
             recSet.DoQuery2($"Select * From [@RSM_SERVICE_PARAMS]");
             if (recSet.EoF)
             {
-                recSet.DoQuery2($"INSERT INTO [@RSM_SERVICE_PARAMS] (U_PensionAccDr, U_PensionAccCr, U_PensionControlAccDr, U_PensionControlAccCr, U_IncomeTaxAccDr, U_IncomeTaxAccCr, U_IncomeControlTaxAccDr, U_IncomeControlTaxAccCr,U_IncomeTaxOnInvoice) VALUES (N'{PensionAccDr}',N'{PensionAccCr}',N'{PensionAccControlDr}',N'{PensionAccControlCr}',N'{IncomeTaxAccDr}',N'{IncomeTaxAccCr}',N'{IncomeTaxControlAccDr}',N'{IncomeTaxControlAccCr}', N'{IncomeTaxOnInvoice}')");
+                recSet.DoQuery2($"INSERT INTO [@RSM_SERVICE_PARAMS] (U_PensionAccDr, U_PensionAccCr, U_PensionControlAccDr, U_PensionControlAccCr, U_IncomeTaxAccDr, U_IncomeTaxAccCr, U_IncomeControlTaxAccDr, U_IncomeControlTaxAccCr,U_IncomeTaxOnInvoice, U_UseDocControllAcc) VALUES (N'{PensionAccDr}',N'{PensionAccCr}',N'{PensionAccControlDr}',N'{PensionAccControlCr}',N'{IncomeTaxAccDr}',N'{IncomeTaxAccCr}',N'{IncomeTaxControlAccDr}',N'{IncomeTaxControlAccCr}', N'{IncomeTaxOnInvoice}', N'{UseDocControllAcc}')");
             }
             else
             {
-                recSet.DoQuery2($"UPDATE [@RSM_SERVICE_PARAMS] SET U_PensionAccDr = N'{PensionAccDr}', U_PensionAccCr = N'{PensionAccCr}', U_PensionControlAccDr = N'{PensionAccControlDr}', U_PensionControlAccCr = N'{PensionAccControlCr}', U_IncomeTaxAccDr = N'{IncomeTaxAccDr}', U_IncomeTaxAccCr = N'{IncomeTaxAccCr}', U_IncomeControlTaxAccDr = N'{IncomeTaxControlAccDr}', U_IncomeControlTaxAccCr = N'{IncomeTaxControlAccCr}', U_IncomeTaxOnInvoice = N'{IncomeTaxOnInvoice}'");
+                recSet.DoQuery2($"UPDATE [@RSM_SERVICE_PARAMS] SET U_PensionAccDr = N'{PensionAccDr}', U_PensionAccCr = N'{PensionAccCr}', U_PensionControlAccDr = N'{PensionAccControlDr}', U_PensionControlAccCr = N'{PensionAccControlCr}', U_IncomeTaxAccDr = N'{IncomeTaxAccDr}', U_IncomeTaxAccCr = N'{IncomeTaxAccCr}', U_IncomeControlTaxAccDr = N'{IncomeTaxControlAccDr}', U_IncomeControlTaxAccCr = N'{IncomeTaxControlAccCr}', U_IncomeTaxOnInvoice = N'{IncomeTaxOnInvoice}', U_UseDocControllAcc = N'{UseDocControllAcc}'");
             }
 
             SAPbouiCOM.Framework.Application.SBO_Application.StatusBar.SetSystemMessage("Success", BoMessageTime.bmt_Short, BoStatusBarMessageType.smt_Success);
@@ -335,5 +344,8 @@ namespace ServiceJournalEntryAp.Forms
         }
 
         private CheckBox CheckBox0;
+        private CheckBox CheckBox1;
+
+   
     }
 }

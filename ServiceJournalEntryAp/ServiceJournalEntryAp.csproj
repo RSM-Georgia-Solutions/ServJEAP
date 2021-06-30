@@ -56,20 +56,20 @@
       <Private>True</Private>
     </Reference>
     <Reference Include="RSM.Core, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\RSM.SAPB1.SDK.1.0.1\lib\RSM.Core.dll</HintPath>
-      <Private>True</Private>
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\Downloads\RSM.Core.dll</HintPath>
     </Reference>
     <Reference Include="RSM.Core.SDK, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\RSM.SAPB1.SDK.1.0.1\lib\RSM.Core.SDK.dll</HintPath>
-      <Private>True</Private>
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\Downloads\RSM.Core.SDK.dll</HintPath>
     </Reference>
     <Reference Include="RSM.Core.SDK.DI, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\RSM.SAPB1.SDK.1.0.1\lib\RSM.Core.SDK.DI.dll</HintPath>
-      <Private>True</Private>
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\Downloads\RSM.Core.SDK.DI.dll</HintPath>
     </Reference>
     <Reference Include="RSM.Core.SDK.UI, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\RSM.SAPB1.SDK.1.0.1\lib\RSM.Core.SDK.UI.dll</HintPath>
-      <Private>True</Private>
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\..\Downloads\RSM.Core.SDK.UI.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
