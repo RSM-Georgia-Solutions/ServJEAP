@@ -50,7 +50,7 @@ namespace ServiceJournalEntryAp.SystemForms
 
         private void OnCustomInitialize()
         {
-            controller = new OutgoingPaymntFormController(RSM.Core.SDK.DI.DIApplication.Company, UIAPIRawForm);
+            controller = new OutgoingPaymntFormController(RSM.Core.SDK.DI.DIApplication.Company, UIAPIRawForm, new ServiceJournalEntryLogic.Providers.SettingsProvider(RSM.Core.SDK.DI.DIApplication.Company));
         }
 
         private void Form_CloseAfter(SBOItemEventArg pVal)

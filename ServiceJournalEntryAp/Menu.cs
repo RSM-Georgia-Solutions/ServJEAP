@@ -30,7 +30,7 @@ namespace ServiceJournalEntryAp
             oCreationPackage.Image = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetEntryAssembly().Location) + "\\Media\\income.png";
 
             oMenus = oMenuItem.SubMenus;
-            RSM.Core.SDK.DI.DIApplication.DIConnect((SAPbobsCOM.Company)Application.SBO_Application.Company.GetDICompany());
+            
             try
             {
                 //  If the manu already exists this code will fail

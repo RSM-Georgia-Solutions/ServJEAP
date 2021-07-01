@@ -92,6 +92,87 @@ namespace ServiceJournalEntryLogic
             }
         }
 
+
+        public string AddJournalEntryFromPayment(Company _comp, Payments doc, double amount)
+        {
+            Settings settings = settingsProvider.Get();
+
+            SAPbobsCOM.JournalEntries vJE =
+                (SAPbobsCOM.JournalEntries)_comp.GetBusinessObject(SAPbobsCOM.BoObjectTypes.oJournalEntries);
+            var comment = "IN " + doc.DocNum;
+            vJE.ReferenceDate = doc.DocDate;
+            vJE.DueDate = doc.DocDate;
+            vJE.TaxDate = doc.DocDate;
+            vJE.Memo = comment.Length < 50 ? comment : comment.Substring(0, 49);
+
+            vJE.Lines.BPLID = doc.BPLID; //branch
+
+            if (doc.DocCurrency == "GEL")
+            {
+                vJE.Lines.Debit = amount;
+            }
+            else
+            {
+                vJE.Lines.FCCurrency = doc.DocCurrency;
+                vJE.Lines.FCDebit = amount;
+            }
+
+            vJE.Lines.Credit = 0;
+            vJE.Lines.FCCredit = 0;
+
+            if (string.IsNullOrWhiteSpace(settings.PensionAccDr))
+            {
+                vJE.Lines.ShortName = doc.CardCode;
+
+                if (settings.UseDocControllAcc)
+                {
+                    vJE.Lines.ControlAccount = doc.ControlAccount;
+                }
+            }
+            else
+            {
+                vJE.Lines.AccountCode = settings.PensionAccDr;
+            }
+            vJE.Lines.Add();
+
+
+            vJE.Lines.BPLID = doc.BPLID;
+            if (string.IsNullOrWhiteSpace(settings.PensionAccCr))
+            {
+                vJE.Lines.ShortName = settings.PensionControlAccCr;
+            }
+            else
+            {
+                vJE.Lines.AccountCode = settings.PensionAccCr;
+            }
+            vJE.Lines.Debit = 0;
+            vJE.Lines.FCDebit = 0;
+            if (doc.DocCurrency == "GEL")
+            {
+                vJE.Lines.Credit = amount;
+                vJE.Lines.FCCredit = 0;
+            }
+            else
+            {
+                vJE.Lines.FCCurrency = doc.DocCurrency;
+                vJE.Lines.FCCredit = amount;
+            }
+
+            vJE.Lines.Add();
+
+            int i = vJE.Add();
+            if (i == 0)
+            {
+                string transId = _comp.GetNewObjectKey();
+                return transId;
+            }
+            else
+            {
+                throw new Exception(_comp.GetLastErrorDescription());
+            }
+        }
+
+
         public IEnumerable<Result> PostIncomeTaxFromCreditMemo(string invDocEntry)
         {
             List<Result> results = new List<Result>();
@@ -223,7 +304,6 @@ namespace ServiceJournalEntryLogic
             bp.GetByKey(invoiceDi.CardCode);
             bool isIncomeTaxPayer = (string)bp.UserFields.Fields.Item("U_IncomeTaxPayer").Value == "01";
             bool isPensionPayer = (string)bp.UserFields.Fields.Item("U_PensionPayer").Value == "01";
-
             var incomeTaxPayerPercent = (double)bp.UserFields.Fields.Item("U_IncomeTaxPayerPercent").Value;
             var pensionPayerPercent = (double)bp.UserFields.Fields.Item("U_PensionPayerPercent").Value;
 
@@ -272,77 +352,7 @@ namespace ServiceJournalEntryLogic
                         //    invoiceDi.Series, invoiceDi.Comments, invoiceDi.DocDate,
                         //    invoiceDi.BPL_IDAssignedToInvoice, invoiceDi.DocCurrency);
 
-                        JournalEntries vJE = (JournalEntries)_company.GetBusinessObject(BoObjectTypes.oJournalEntries);
-                        vJE.ReferenceDate = invoiceDi.DocDate;
-                        vJE.DueDate = invoiceDi.DocDate;
-                        vJE.TaxDate = invoiceDi.DocDate;
-                        vJE.Memo = invoiceDi.Comments.PadLeft(50).Substring(0, 49);
-
-                        #region Line 1
-                        vJE.Lines.BPLID = invoiceDi.BPL_IDAssignedToInvoice;
-                        if (invoiceDi.DocCurrency == "GEL")
-                        {
-                            vJE.Lines.Debit = incomeTaxAmount;
-                        }
-                        else
-                        {
-                            vJE.Lines.FCCurrency = invoiceDi.DocCurrency;
-                            vJE.Lines.FCDebit = incomeTaxAmount;
-                        }
-
-                        if (string.IsNullOrWhiteSpace(settings.IncomeTaxAccDr))
-                        {
-                            vJE.Lines.ShortName = invoiceDi.CardCode;
-
-                            if (settings.UseDocControllAcc)
-                            {
-                                vJE.Lines.ControlAccount = invoiceDi.ControlAccount; 
-                            }
-                        }
-                        else
-                        {
-                            vJE.Lines.AccountCode = settings.IncomeTaxAccDr;
-                        }
-
-                        vJE.Lines.Add();
-                        #endregion
-
-
-                        #region Line 2
-                        vJE.Lines.BPLID = invoiceDi.BPL_IDAssignedToInvoice;
-
-                        if (invoiceDi.DocCurrency == "GEL")
-                        {
-                            vJE.Lines.Credit = incomeTaxAmount;
-                            vJE.Lines.FCCredit = 0;
-                        }
-                        else
-                        {
-                            vJE.Lines.FCCurrency = invoiceDi.DocCurrency;
-                            vJE.Lines.FCCredit = incomeTaxAmount;
-                        }
-
-                        if (string.IsNullOrWhiteSpace(settings.IncomeTaxAccCr))
-                        {
-                            vJE.Lines.ShortName = settings.IncomeControlTaxAccCr;
-                        }
-                        else
-                        {
-                            vJE.Lines.AccountCode = settings.IncomeTaxAccCr;
-                        }
-
-                        vJE.Lines.Add(); 
-                        #endregion
-
-                        var ret = vJE.Add();
-                        if(ret == 0)
-                        {
-                            incomeTaxPayerTransId = _company.GetNewObjectKey();
-                        }
-                        else
-                        {
-                            throw new Exception(_company.GetLastErrorDescription());
-                        }
+                        incomeTaxPayerTransId = PostvJEFromInvoice(settings, invoiceDi, incomeTaxAmount);
 
                         results.Add(new Result
                         {
@@ -364,10 +374,12 @@ namespace ServiceJournalEntryLogic
                 {
                     try
                     {
-                        string incomeTaxPayerTransId = AddJournalEntry(_company, settings.IncomeTaxAccCr,
-                            settings.IncomeTaxAccDr, invoiceDi.CardCode, invoiceDi.CardCode, -incomeTaxAmount,
-                            invoiceDi.Series, invoiceDi.Comments, invoiceDi.DocDate,
-                            invoiceDi.BPL_IDAssignedToInvoice, invoiceDi.DocCurrency);
+                        //string incomeTaxPayerTransId = AddJournalEntry(_company, settings.IncomeTaxAccCr,
+                        //    settings.IncomeTaxAccDr, invoiceDi.CardCode, invoiceDi.CardCode, -incomeTaxAmount,
+                        //    invoiceDi.Series, invoiceDi.Comments, invoiceDi.DocDate,
+                        //    invoiceDi.BPL_IDAssignedToInvoice, invoiceDi.DocCurrency);
+
+                        string incomeTaxPayerTransId = PostvJEFromInvoice(settings, invoiceDi, incomeTaxAmount);
                         results.Add(new Result
                         {
                             IsSuccessCode = true,
@@ -385,6 +397,84 @@ namespace ServiceJournalEntryLogic
 
             }
             return results;
+        }
+
+        private string PostvJEFromInvoice(Settings settings, Documents invoiceDi, double incomeTaxAmount)
+        {
+            string incomeTaxPayerTransId;
+            JournalEntries vJE = (JournalEntries)_company.GetBusinessObject(BoObjectTypes.oJournalEntries);
+            vJE.ReferenceDate = invoiceDi.DocDate;
+            vJE.DueDate = invoiceDi.DocDate;
+            vJE.TaxDate = invoiceDi.DocDate;
+            vJE.Memo = invoiceDi.Comments.PadLeft(50).Substring(0, 49);
+
+            #region Line 1
+            vJE.Lines.BPLID = invoiceDi.BPL_IDAssignedToInvoice;
+            if (invoiceDi.DocCurrency == "GEL")
+            {
+                vJE.Lines.Debit = incomeTaxAmount;
+            }
+            else
+            {
+                vJE.Lines.FCCurrency = invoiceDi.DocCurrency;
+                vJE.Lines.FCDebit = incomeTaxAmount;
+            }
+
+            if (string.IsNullOrWhiteSpace(settings.IncomeTaxAccDr))
+            {
+                vJE.Lines.ShortName = invoiceDi.CardCode;
+
+                if (settings.UseDocControllAcc)
+                {
+                    vJE.Lines.ControlAccount = invoiceDi.ControlAccount;
+                }
+            }
+            else
+            {
+                vJE.Lines.AccountCode = settings.IncomeTaxAccDr;
+            }
+
+            vJE.Lines.Add();
+            #endregion
+
+
+            #region Line 2
+            vJE.Lines.BPLID = invoiceDi.BPL_IDAssignedToInvoice;
+
+            if (invoiceDi.DocCurrency == "GEL")
+            {
+                vJE.Lines.Credit = incomeTaxAmount;
+                vJE.Lines.FCCredit = 0;
+            }
+            else
+            {
+                vJE.Lines.FCCurrency = invoiceDi.DocCurrency;
+                vJE.Lines.FCCredit = incomeTaxAmount;
+            }
+
+            if (string.IsNullOrWhiteSpace(settings.IncomeTaxAccCr))
+            {
+                vJE.Lines.ShortName = settings.IncomeControlTaxAccCr;
+            }
+            else
+            {
+                vJE.Lines.AccountCode = settings.IncomeTaxAccCr;
+            }
+
+            vJE.Lines.Add();
+            #endregion
+
+            var ret = vJE.Add();
+            if (ret == 0)
+            {
+                incomeTaxPayerTransId = _company.GetNewObjectKey();
+            }
+            else
+            {
+                throw new Exception(_company.GetLastErrorDescription());
+            }
+
+            return incomeTaxPayerTransId;
         }
 
         public IEnumerable<Result> PostIncomeTaxFromOutgoing(string invDocEntry)

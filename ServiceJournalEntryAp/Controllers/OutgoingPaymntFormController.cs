@@ -8,17 +8,21 @@ using SAPbouiCOM;
 using System.Xml;
 using System.Globalization;
 using ServiceJournalEntryLogic.Extensions;
+using ServiceJournalEntryLogic.Providers;
 
 namespace ServiceJournalEntryAp.Controllers
 {
     public class OutgoingPaymntFormController : FormController
     {
-        public OutgoingPaymntFormController(SAPbobsCOM.Company Company, IForm Form) : base(Company, Form)
+        public SettingsProvider SettingsProvider { get; set; }
+        public OutgoingPaymntFormController(SAPbobsCOM.Company Company, IForm Form, SettingsProvider settingsProvider) : base(Company, Form)
         {
+            SettingsProvider = settingsProvider;
         }
 
         public void OnPaymentAdd(ref SAPbouiCOM.BusinessObjectInfo pVal)
         {
+            var settings = SettingsProvider.Get();
             var invObjectString = pVal.ObjectKey;
             XmlDocument xmlDoc = new XmlDocument();
             xmlDoc.LoadXml(invObjectString);
@@ -119,6 +123,7 @@ namespace ServiceJournalEntryAp.Controllers
                                     outgoingPaymentDi.DocDate,
                                     outgoingPaymentDi.BPLID,
                                     outgoingPaymentDi.DocCurrency);
+
                             }
                         }
                         catch (Exception e)
@@ -130,17 +135,19 @@ namespace ServiceJournalEntryAp.Controllers
                         {
                             if (isPensionPayer)
                             {
-                                string transId = DocumentHelper.AddJournalEntry(oCompany,
-                                    pensionAccCr,
-                                    "",
-                                    pensionControlAccCr,
-                                    outgoingPaymentDi.CardCode,
-                                    pensionAmountPaymentOnAccount,
-                                    outgoingPaymentDi.Series,
-                                    "OP " + outgoingPaymentDi.DocNum,
-                                    outgoingPaymentDi.DocDate,
-                                    outgoingPaymentDi.BPLID,
-                                    outgoingPaymentDi.DocCurrency);
+                                //string transId = DocumentHelper.AddJournalEntry(oCompany,
+                                //    pensionAccCr,
+                                //    "",
+                                //    pensionControlAccCr,
+                                //    outgoingPaymentDi.CardCode,
+                                //    pensionAmountPaymentOnAccount,
+                                //    outgoingPaymentDi.Series,
+                                //    "OP " + outgoingPaymentDi.DocNum,
+                                //    outgoingPaymentDi.DocDate,
+                                //    outgoingPaymentDi.BPLID,
+                                //    outgoingPaymentDi.DocCurrency);
+                                string transId = PostvJEFromPayment(settings, outgoingPaymentDi, pensionAmountPaymentOnAccount);
+
                             }
                         }
                         catch (Exception e)
@@ -180,6 +187,7 @@ namespace ServiceJournalEntryAp.Controllers
                             outgoingPaymentDi.DocDate,
                             outgoingPaymentDi.BPLID,
                             outgoingPaymentDi.DocCurrency);
+
                     }
                 }
             }
@@ -351,8 +359,12 @@ namespace ServiceJournalEntryAp.Controllers
 
         }
 
+       
+
         public void OnPaymentUpdate(ref BusinessObjectInfo pVal)
         {
+            var settings = SettingsProvider.Get();
+
             var invObjectString = pVal.ObjectKey;
             XmlDocument xmlDoc = new XmlDocument();
             xmlDoc.LoadXml(invObjectString);
@@ -453,17 +465,18 @@ namespace ServiceJournalEntryAp.Controllers
                             {
                                 if (isPensionPayer)
                                 {
-                                    string transId = DocumentHelper.AddJournalEntry(oCompany,
-                                        pensionAccCr,
-                                        "",
-                                        pensionControlAccCr,
-                                        outgoingPaymentDi.CardCode,
-                                        -pensionAmountPaymentOnAccount,
-                                        outgoingPaymentDi.Series,
-                                        "OP " + outgoingPaymentDi.DocNum,
-                                        outgoingPaymentDi.DocDate,
-                                        outgoingPaymentDi.BPLID,
-                                        outgoingPaymentDi.DocCurrency);
+                                    //string transId = DocumentHelper.AddJournalEntry(oCompany,
+                                    //    pensionAccCr,
+                                    //    "",
+                                    //    pensionControlAccCr,
+                                    //    outgoingPaymentDi.CardCode,
+                                    //    -pensionAmountPaymentOnAccount,
+                                    //    outgoingPaymentDi.Series,
+                                    //    "OP " + outgoingPaymentDi.DocNum,
+                                    //    outgoingPaymentDi.DocDate,
+                                    //    outgoingPaymentDi.BPLID,
+                                    //    outgoingPaymentDi.DocCurrency);
+                                    string transId = PostvJEFromPayment(settings, outgoingPaymentDi, pensionAmountPaymentOnAccount);
                                 }
                             }
                             catch (Exception e)
@@ -672,6 +685,69 @@ namespace ServiceJournalEntryAp.Controllers
                     }
                 }
             }
+        }
+
+
+        private string PostvJEFromPayment(ServiceJournalEntryLogic.Models.Settings settings, Payments outgoingPaymentDi, double pensionAmountPaymentOnAccount)
+        {
+            JournalEntries vJE = (JournalEntries)oCompany.GetBusinessObject(BoObjectTypes.oJournalEntries);
+            var comment = "OP " + outgoingPaymentDi.DocNum;
+            vJE.ReferenceDate = outgoingPaymentDi.DocDate;
+            vJE.DueDate = outgoingPaymentDi.DocDate;
+            vJE.TaxDate = outgoingPaymentDi.DocDate;
+            vJE.Memo = comment.Length < 50 ? comment : comment.Substring(0, 49);
+            vJE.Lines.BPLID = outgoingPaymentDi.BPLID;
+            if (outgoingPaymentDi.DocCurrency == "GEL")
+            {
+                vJE.Lines.Debit = pensionAmountPaymentOnAccount;
+            }
+            else
+            {
+                vJE.Lines.FCCurrency = outgoingPaymentDi.DocCurrency;
+                vJE.Lines.FCDebit = pensionAmountPaymentOnAccount;
+            }
+
+            vJE.Lines.ShortName = outgoingPaymentDi.CardCode;
+
+            if (settings.UseDocControllAcc)
+            {
+                vJE.Lines.ControlAccount = outgoingPaymentDi.ControlAccount;
+            }
+
+
+            vJE.Lines.Add();
+            vJE.Lines.BPLID = outgoingPaymentDi.BPLID;
+
+            if (outgoingPaymentDi.DocCurrency == "GEL")
+            {
+                vJE.Lines.Credit = pensionAmountPaymentOnAccount;
+                vJE.Lines.FCCredit = 0;
+            }
+            else
+            {
+                vJE.Lines.FCCurrency = outgoingPaymentDi.DocCurrency;
+                vJE.Lines.FCCredit = pensionAmountPaymentOnAccount;
+            }
+            if (string.IsNullOrWhiteSpace(settings.PensionAccCr))
+            {
+                vJE.Lines.ShortName = settings.PensionControlAccCr;
+            }
+            else
+            {
+                vJE.Lines.AccountCode = settings.PensionAccCr;
+            }
+            vJE.Lines.Add();
+            string transId = "";
+            var ret = vJE.Add();
+            if (ret == 0)
+            {
+                transId = oCompany.GetNewObjectKey();
+            }
+            else
+            {
+                throw new Exception(oCompany.GetLastErrorDescription());
+            }
+            return transId;
         }
     }
 }

@@ -7,17 +7,21 @@ using SAPbobsCOM;
 using SAPbouiCOM;
 using ServiceJournalEntryLogic.Extensions;
 using System.Globalization;
+using ServiceJournalEntryLogic.Providers;
 
 namespace ServiceJournalEntryAp.Controllers
 {
     public class BankStatementDetailsFormController : FormController
     {
-        public BankStatementDetailsFormController(SAPbobsCOM.Company Company, IForm Form) : base(Company, Form)
+        public SettingsProvider Provider { get; set; }
+        public BankStatementDetailsFormController(SAPbobsCOM.Company Company, IForm Form, SettingsProvider provider) : base(Company, Form)
         {
+            Provider = provider;
         }
 
         public void PostPension()
         {
+            var settings = Provider.Get();
             bool incomeTaxOnInvoice = false;
             int successCount = 0;
             int hasNoJounralEntryCount = 0;
@@ -196,11 +200,76 @@ namespace ServiceJournalEntryAp.Controllers
 
                 try
                 {
-                    string transId = DocumentHelper.AddJournalEntry(oCompany, pensionAccCr,
-                        "", pensionControlAccCr, cardCode, pensionAmountPaymentOnAccount, series,
-                        "BP " + bsNumber + " " + order, postingDate, bplId,
-                        curryencyString);
-                    query += $", '{transId}')";
+                    //string transId = DocumentHelper.AddJournalEntry(oCompany, pensionAccCr,
+                    //    "", pensionControlAccCr, cardCode, pensionAmountPaymentOnAccount, series,
+                    //    "BP " + bsNumber + " " + order, postingDate, bplId,
+                    //    curryencyString);
+                    //query += $", '{transId}')";
+
+                    var comment = "BP " + bsNumber + " " + order;
+                    JournalEntries vJE = (JournalEntries)oCompany.GetBusinessObject(BoObjectTypes.oJournalEntries);
+                    vJE.ReferenceDate = postingDate;
+                    vJE.DueDate = postingDate;
+                    vJE.TaxDate = postingDate;
+                    vJE.Memo = comment.Length < 50 ? comment : comment.Substring(0, 49);
+                    vJE.Lines.BPLID = bplId;
+                    if (curryencyString == "GEL")
+                    {
+                        vJE.Lines.Debit = pensionAmountPaymentOnAccount;
+                    }
+                    else
+                    {
+                        vJE.Lines.FCCurrency = curryencyString;
+                        vJE.Lines.FCDebit = pensionAmountPaymentOnAccount;
+                    }
+                    vJE.Lines.ShortName = cardCode;
+
+                    if (settings.UseDocControllAcc)
+                    {
+
+                        var docId = ((EditText)matrix.GetCellSpecific("200000141", i)).Value;
+                        int res;
+                        if(int.TryParse(docId, out res))
+                        {
+                            var doc = (Documents)oCompany.GetBusinessObject(BoObjectTypes.oPurchaseInvoices);
+                            doc.GetByKey(res);
+                            vJE.Lines.ControlAccount = doc.ControlAccount;
+                        }
+                        
+                    }
+                    vJE.Lines.Add();
+                    vJE.Lines.BPLID = bplId;
+
+                    if (curryencyString == "GEL")
+                    {
+                        vJE.Lines.Credit = pensionAmountPaymentOnAccount;
+                        vJE.Lines.FCCredit = 0;
+                    }
+                    else
+                    {
+                        vJE.Lines.FCCurrency = curryencyString;
+                        vJE.Lines.FCCredit = pensionAmountPaymentOnAccount;
+                    }
+                    if (string.IsNullOrWhiteSpace(settings.PensionAccCr))
+                    {
+                        vJE.Lines.ShortName = settings.PensionControlAccCr;
+                    }
+                    else
+                    {
+                        vJE.Lines.AccountCode = settings.PensionAccCr;
+                    }
+                    vJE.Lines.Add();
+                    string transId = "";
+                    var ret = vJE.Add();
+                    if (ret == 0)
+                    {
+                        transId = oCompany.GetNewObjectKey();
+                    }
+                    else
+                    {
+                        throw new Exception(oCompany.GetLastErrorDescription());
+                    }
+
                     successCount++;
                     totalCount++;
 
