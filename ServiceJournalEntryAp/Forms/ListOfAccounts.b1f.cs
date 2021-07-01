@@ -1,6 +1,5 @@
 ﻿using SAPbouiCOM.Framework;
 using ServiceJournalEntryAp.Controllers;
-using ServiceJournalEntryLogic.Extensions;
 
 namespace ServiceJournalEntryAp.Forms
 {
@@ -49,7 +48,7 @@ namespace ServiceJournalEntryAp.Forms
 
             if (controller.oCompany.DbServerType == SAPbobsCOM.BoDataServerTypes.dst_HANADB)
             {
-                query = RecordSetExtensions.TranslateQueryToHana(null, query);
+                query = RSM.Core.SDK.DI.Tools.SqlTranslatorTool.TranslateQuery(query);
             }
 
             Grid0.DataTable.ExecuteQuery(query);
@@ -64,7 +63,7 @@ namespace ServiceJournalEntryAp.Forms
 
             if (controller.oCompany.DbServerType == SAPbobsCOM.BoDataServerTypes.dst_HANADB)
             {
-                query = RecordSetExtensions.TranslateQueryToHana(null, query);
+                query = RSM.Core.SDK.DI.Tools.SqlTranslatorTool.TranslateQuery(query);
             }
 
             Grid0.DataTable.ExecuteQuery(query);

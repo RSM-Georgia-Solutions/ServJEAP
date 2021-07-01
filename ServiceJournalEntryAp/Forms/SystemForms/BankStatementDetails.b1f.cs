@@ -46,7 +46,9 @@ namespace ServiceJournalEntryAp.SystemForms
         private void OnCustomInitialize()
         {
             Button0.Item.FontSize = 10;
-            controller = new BankStatementDetailsFormController(RSM.Core.SDK.DI.DIApplication.Company, UIAPIRawForm, new SettingsProvider(RSM.Core.SDK.DI.DIApplication.Company));
+            controller = new BankStatementDetailsFormController(RSM.Core.SDK.DI.DIApplication.Company, UIAPIRawForm, 
+                new SettingsProvider(RSM.Core.SDK.DI.DIApplication.Company), 
+                new BspHistoryProvider(RSM.Core.SDK.DI.DIApplication.Company));
         }
 
         private void Button0_PressedAfter(object sboObject, SAPbouiCOM.SBOItemEventArg pVal)

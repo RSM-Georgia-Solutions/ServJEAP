@@ -1,5 +1,5 @@
-﻿using SAPbobsCOM;
-using ServiceJournalEntryLogic.Extensions;
+﻿using RSM.Core.SDK.DI.Extension;
+using SAPbobsCOM;
 using ServiceJournalEntryLogic.Models;
 using ServiceJournalEntryLogic.Providers;
 using System;

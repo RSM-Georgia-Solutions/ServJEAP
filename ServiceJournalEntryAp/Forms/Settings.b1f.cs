@@ -7,8 +7,8 @@ using SAPbouiCOM;
 using SAPbouiCOM.Framework;
 using Application = SAPbouiCOM.Framework.Application;
 using ServiceJournalEntryAp.Controllers;
-using ServiceJournalEntryLogic.Extensions;
 using ServiceJournalEntryLogic.Providers;
+using RSM.Core.SDK.DI.Extension;
 
 namespace ServiceJournalEntryAp.Forms
 {

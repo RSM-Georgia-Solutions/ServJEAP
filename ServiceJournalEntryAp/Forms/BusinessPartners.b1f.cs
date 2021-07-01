@@ -1,7 +1,6 @@
 ﻿using SAPbouiCOM.Framework;
 using ServiceJournalEntryAp.Forms;
 using ServiceJournalEntryAp.Controllers;
-using ServiceJournalEntryLogic.Extensions;
 
 namespace ServiceJournalEntryAp
 {
@@ -49,7 +48,8 @@ namespace ServiceJournalEntryAp
 
             if (controller.oCompany.DbServerType == SAPbobsCOM.BoDataServerTypes.dst_HANADB)
             {
-                query = RecordSetExtensions.TranslateQueryToHana(null, query);
+                
+                query = RSM.Core.SDK.DI.Tools.SqlTranslatorTool.TranslateQuery(query);
             }
 
             Grid0.DataTable.ExecuteQuery(query);
@@ -100,7 +100,7 @@ namespace ServiceJournalEntryAp
             string query = $"SELECT CardCode, CardName FROM OCRD WHERE CardType = 'S' AND (CardCode Like N'%{EditText0.Value}%' OR CardName Like N'%{EditText0.Value}%')";
             if (controller.oCompany.DbServerType == SAPbobsCOM.BoDataServerTypes.dst_HANADB)
             {
-                query = RecordSetExtensions.TranslateQueryToHana(null, query);
+                query = RSM.Core.SDK.DI.Tools.SqlTranslatorTool.TranslateQuery(query);
             }
 
             Grid0.DataTable.ExecuteQuery(query);

@@ -20,6 +20,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <PlatformTarget>x64</PlatformTarget>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -30,22 +31,25 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="ConverterLib_x64, Version=1.0.0.0, Culture=neutral, processorArchitecture=AMD64" />
-    <Reference Include="RSM.Core, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\RSM.SAPB1.SDK.1.0.1\lib\RSM.Core.dll</HintPath>
+    <Reference Include="Antlr3.Runtime, Version=3.4.1.9004, Culture=neutral, PublicKeyToken=eb42632606e9261f, processorArchitecture=MSIL">
+      <HintPath>..\packages\RSM.SAPB1.SDK.1.0.2\lib\Antlr3.Runtime.dll</HintPath>
       <Private>True</Private>
+    </Reference>
+    <Reference Include="ConverterLib_x64, Version=1.0.0.0, Culture=neutral, processorArchitecture=AMD64">
+      <HintPath>..\packages\RSM.SAPB1.SDK.1.0.2\lib\ConverterLib_x64.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="RSM.Core, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\RSM.SAPB1.SDK.1.0.2\lib\RSM.Core.dll</HintPath>
     </Reference>
     <Reference Include="RSM.Core.SDK, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\RSM.SAPB1.SDK.1.0.1\lib\RSM.Core.SDK.dll</HintPath>
-      <Private>True</Private>
+      <HintPath>..\packages\RSM.SAPB1.SDK.1.0.2\lib\RSM.Core.SDK.dll</HintPath>
     </Reference>
     <Reference Include="RSM.Core.SDK.DI, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\RSM.SAPB1.SDK.1.0.1\lib\RSM.Core.SDK.DI.dll</HintPath>
-      <Private>True</Private>
+      <HintPath>..\packages\RSM.SAPB1.SDK.1.0.2\lib\RSM.Core.SDK.DI.dll</HintPath>
     </Reference>
     <Reference Include="RSM.Core.SDK.UI, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\RSM.SAPB1.SDK.1.0.1\lib\RSM.Core.SDK.UI.dll</HintPath>
-      <Private>True</Private>
+      <HintPath>..\packages\RSM.SAPB1.SDK.1.0.2\lib\RSM.Core.SDK.UI.dll</HintPath>
     </Reference>
     <Reference Include="SAPBusinessOneSDK, Version=1.0.0.1, Culture=neutral, PublicKeyToken=c7c3cb60e45d119f, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
@@ -62,7 +66,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="DocumentHelper.cs" />
-    <Compile Include="Extensions\RecordSetExtensions.cs" />
     <Compile Include="IDocumentHelper.cs" />
     <Compile Include="Models\BspHisotry.cs" />
     <Compile Include="Models\Settings.cs" />
@@ -76,11 +79,11 @@
     <Compile Include="Services\SetupService.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="packages.config" />
-  </ItemGroup>
-  <ItemGroup>
     <Content Include="lib\Antlr3.Runtime.dll" />
     <Content Include="lib\ConverterLib_x64.dll" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
