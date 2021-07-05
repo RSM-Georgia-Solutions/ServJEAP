@@ -51,15 +51,28 @@ namespace ServiceJournalEntryAp.Controllers
 
             for (int i = 1; i <= oMatrix.RowCount; i++)
             {
+
                 #region validations & calculations
-                if (((ComboBox)oMatrix.GetCellSpecific("10000037", i)).Selected == null)
+                try
                 {
+                    if (((ComboBox)oMatrix.GetCellSpecific("10000037", i)).Selected == null || string.IsNullOrEmpty(((ComboBox)oMatrix.GetCellSpecific("10000037", i)).Selected.Value))
+                    {
+                        continue;
+                    }
+
+                }
+                catch
+                {
+                    RSM.Core.SDK.UI.UIApplication.ShowError("Error During Reading Matrix");
                     continue;
                 }
+
 
                 string cardCode = OBNKDataSource.GetValue("CardCode", i - 1);
                 string sequence = OBNKDataSource.GetValue("Sequence", i - 1);
                 string order = OBNKDataSource.GetValue("VisOrder", i - 1);
+                
+             
 
                 if (BspHistoryProvider.Exists(idNumber, sequence, BankAccountEditText.Value))
                 {
