@@ -76,6 +76,7 @@
     <Compile Include="Providers\SettingsProvider.cs" />
     <Compile Include="Providers\UDTProvider.cs" />
     <Compile Include="Result.cs" />
+    <Compile Include="Services\BankStatementsServiceHelper.cs" />
     <Compile Include="Services\SetupService.cs" />
   </ItemGroup>
   <ItemGroup>

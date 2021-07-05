@@ -216,74 +216,102 @@ namespace ServiceJournalEntryAp.Controllers
                 string transIdComp = "";
                 try
                 {
-                    //string transId = DocumentHelper.AddJournalEntry(oCompany, pensionAccCr,
-                    //    "", pensionControlAccCr, cardCode, pensionAmountPaymentOnAccount, series,
-                    //    "BP " + bsNumber + " " + order, postingDate, bplId,
-                    //    curryencyString);
-                    //query += $", '{transId}')";
-
-                    var comment = "BP " + BSPNumberEditText.Value + " " + order;
-
-                    JournalEntries vJE = (JournalEntries)oCompany.GetBusinessObject(BoObjectTypes.oJournalEntries);
-                    vJE.ReferenceDate = postingDate;
-                    vJE.DueDate = postingDate;
-                    vJE.TaxDate = postingDate;
-                    vJE.Memo = comment.Length < 50 ? comment : comment.Substring(0, 49);
-                    vJE.Lines.BPLID = bplId;
-                    if (curryencyString == "GEL")
+                    if (settings.UseDocControllAcc)
                     {
-                        vJE.Lines.Debit = 0;
+                        string transId = DocumentHelper.AddJournalEntry(oCompany, settings.PensionAccCr,
+                        "", settings.PensionControlAccCr, cardCode, pensionAmountPaymentOnAccount, series,
+                        "BP " + BSPNumberEditText.Value + " " + order, postingDate, bplId,
+                        curryencyString);
                     }
                     else
                     {
-                        vJE.Lines.FCCurrency = curryencyString;
-                        vJE.Lines.FCDebit = pensionAmountPaymentOnAccount;
-                    }
-                    vJE.Lines.ShortName = cardCode;
-
-                    if (settings.UseDocControllAcc)
-                    {
-                        var docId = ((EditText)oMatrix.GetCellSpecific("200000141", i)).Value;
+                        var paymentId = OBNKDataSource.GetValue("PmntID", i - 1);
                         int res;
-                        if (int.TryParse(docId, out res))
+                        if (int.TryParse(paymentId, out res))
+                        {
+                            Payments outgoingPaymentDi = (Payments)oCompany.GetBusinessObject(BoObjectTypes.oVendorPayments);
+                            for (int j = 0; j < outgoingPaymentDi.Invoices.Count; j++)
+                            {
+                                outgoingPaymentDi.Invoices.SetCurrentLine(j);
+
+                                if (outgoingPaymentDi.Invoices.InvoiceType == BoRcptInvTypes.it_PurchaseInvoice)
+                                {
+                                    Documents invoiceDi = (Documents)oCompany.GetBusinessObject(BoObjectTypes.oPurchaseInvoices);
+                                    if (outgoingPaymentDi.Invoices.DocEntry == 0)
+                                    {
+                                        continue;
+                                    }
+                                    invoiceDi.GetByKey(outgoingPaymentDi.Invoices.DocEntry);
+                                }
+                            }
+
+                        }
+                        var comment = "BP " + BSPNumberEditText.Value + " " + order;
+
+                        JournalEntries vJE = (JournalEntries)oCompany.GetBusinessObject(BoObjectTypes.oJournalEntries);
+                        vJE.ReferenceDate = postingDate;
+                        vJE.DueDate = postingDate;
+                        vJE.TaxDate = postingDate;
+                        vJE.Memo = comment.Length < 50 ? comment : comment.Substring(0, 49);
+                        vJE.Lines.BPLID = bplId;
+                        if (curryencyString == "GEL")
+                        {
+                            vJE.Lines.Debit = 0;
+                        }
+                        else
+                        {
+                            vJE.Lines.FCCurrency = curryencyString;
+                            vJE.Lines.FCDebit = pensionAmountPaymentOnAccount;
+                        }
+                        vJE.Lines.ShortName = cardCode;
+
+
+
+                        var docId = ((EditText)oMatrix.GetCellSpecific("200000141", i)).Value;
+                        int paymentID;
+                        if (int.TryParse(docId, out paymentID))
                         {
                             var doc = (Documents)oCompany.GetBusinessObject(BoObjectTypes.oPurchaseInvoices);
-                            doc.GetByKey(res);
+                            doc.GetByKey(paymentID);
                             vJE.Lines.ControlAccount = doc.ControlAccount;
                         }
 
-                    }
-                    vJE.Lines.Add();
-                    vJE.Lines.BPLID = bplId;
 
-                    if (curryencyString == "GEL")
-                    {
-                        vJE.Lines.Credit = pensionAmountPaymentOnAccount;
-                        vJE.Lines.FCCredit = 0;
+                        vJE.Lines.Add();
+                        vJE.Lines.BPLID = bplId;
+
+                        if (curryencyString == "GEL")
+                        {
+                            vJE.Lines.Credit = pensionAmountPaymentOnAccount;
+                            vJE.Lines.FCCredit = 0;
+                        }
+                        else
+                        {
+                            vJE.Lines.FCCurrency = curryencyString;
+                            vJE.Lines.FCCredit = pensionAmountPaymentOnAccount;
+                        }
+                        if (string.IsNullOrWhiteSpace(settings.PensionAccCr))
+                        {
+                            vJE.Lines.ShortName = settings.PensionControlAccCr;
+                        }
+                        else
+                        {
+                            vJE.Lines.AccountCode = settings.PensionAccCr;
+                        }
+                        vJE.Lines.Add();
+                        var ret = vJE.Add();
+                        if (ret == 0)
+                        {
+                            transIdComp = oCompany.GetNewObjectKey();
+                        }
+                        else
+                        {
+                            throw new Exception(oCompany.GetLastErrorDescription());
+                        }
                     }
-                    else
-                    {
-                        vJE.Lines.FCCurrency = curryencyString;
-                        vJE.Lines.FCCredit = pensionAmountPaymentOnAccount;
-                    }
-                    if (string.IsNullOrWhiteSpace(settings.PensionAccCr))
-                    {
-                        vJE.Lines.ShortName = settings.PensionControlAccCr;
-                    }
-                    else
-                    {
-                        vJE.Lines.AccountCode = settings.PensionAccCr;
-                    }
-                    vJE.Lines.Add();
-                    var ret = vJE.Add();
-                    if (ret == 0)
-                    {
-                        transIdComp = oCompany.GetNewObjectKey();
-                    }
-                    else
-                    {
-                        throw new Exception(oCompany.GetLastErrorDescription());
-                    }
+
+
+
 
                     successCount++;
                     totalCount++;

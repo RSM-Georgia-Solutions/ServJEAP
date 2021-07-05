@@ -29,7 +29,7 @@ namespace ServiceJournalEntryAp.Controllers
             string invDocEnttry = string.Empty;
             try
             {
-                invDocEnttry = xmlDoc.GetElementsByTagName("DocEntry").Item(0).InnerText;
+                invDocEnttry = xmlDoc.GetElementsByTagName("DocEntr y").Item(0).InnerText;
             }
             catch (Exception e)
             {
@@ -255,17 +255,20 @@ namespace ServiceJournalEntryAp.Controllers
                         {
                             if (isPensionPayer)
                             {
-                                string incometaxpayertransid = DocumentHelper.AddJournalEntry(oCompany,
-                                    pensionAccCr,
-                                    "",
-                                    pensionControlAccCr,
-                                    invoiceDi.CardCode,
-                                    pensionAmount,
-                                    invoiceDi.Series,
-                                    "IN " + invoiceDi.DocNum,
-                                    invoiceDi.DocDate,
-                                    invoiceDi.BPL_IDAssignedToInvoice,
-                                    invoiceDi.DocCurrency);
+                                //string incometaxpayertransid = DocumentHelper.AddJournalEntry(oCompany,
+                                //    pensionAccCr,
+                                //    "",
+                                //    pensionControlAccCr,
+                                //    invoiceDi.CardCode,
+                                //    pensionAmount,
+                                //    invoiceDi.Series,
+                                //    "IN " + invoiceDi.DocNum,
+                                //    invoiceDi.DocDate,
+                                //    invoiceDi.BPL_IDAssignedToInvoice,
+                                //    invoiceDi.DocCurrency);
+
+                                string incometaxpayertransid = PostvJEFromPaymentInvoce(settings, invoiceDi, pensionAmount);
+
                             }
                         }
                         catch (Exception e)
@@ -575,17 +578,18 @@ namespace ServiceJournalEntryAp.Controllers
                             {
                                 if (isPensionPayer)
                                 {
-                                    string incometaxpayertransid = DocumentHelper.AddJournalEntry(oCompany,
-                                        pensionAccCr,
-                                        "",
-                                        pensionControlAccCr,
-                                        invoiceDi.CardCode,
-                                        -pensionAmount,
-                                        invoiceDi.Series,
-                                        "IN " + invoiceDi.DocNum,
-                                        invoiceDi.DocDate,
-                                        invoiceDi.BPL_IDAssignedToInvoice,
-                                        invoiceDi.DocCurrency);
+                                    //string incometaxpayertransid = DocumentHelper.AddJournalEntry(oCompany,
+                                    //    pensionAccCr,
+                                    //    "",
+                                    //    pensionControlAccCr,
+                                    //    invoiceDi.CardCode,
+                                    //    -pensionAmount,
+                                    //    invoiceDi.Series,
+                                    //    "IN " + invoiceDi.DocNum,
+                                    //    invoiceDi.DocDate,
+                                    //    invoiceDi.BPL_IDAssignedToInvoice,
+                                    //    invoiceDi.DocCurrency);
+                                    string incometaxpayertransid = PostvJEFromPaymentInvoce(settings, invoiceDi, -pensionAmount);
                                 }
                             }
                             catch (Exception e)
@@ -726,6 +730,67 @@ namespace ServiceJournalEntryAp.Controllers
             else
             {
                 vJE.Lines.FCCurrency = outgoingPaymentDi.DocCurrency;
+                vJE.Lines.FCCredit = pensionAmountPaymentOnAccount;
+            }
+            if (string.IsNullOrWhiteSpace(settings.PensionAccCr))
+            {
+                vJE.Lines.ShortName = settings.PensionControlAccCr;
+            }
+            else
+            {
+                vJE.Lines.AccountCode = settings.PensionAccCr;
+            }
+            vJE.Lines.Add();
+            string transId = "";
+            var ret = vJE.Add();
+            if (ret == 0)
+            {
+                transId = oCompany.GetNewObjectKey();
+            }
+            else
+            {
+                throw new Exception(oCompany.GetLastErrorDescription());
+            }
+            return transId;
+        }
+        private string PostvJEFromPaymentInvoce(ServiceJournalEntryLogic.Models.Settings settings, Documents invoiceDI, double pensionAmountPaymentOnAccount)
+        {
+            JournalEntries vJE = (JournalEntries)oCompany.GetBusinessObject(BoObjectTypes.oJournalEntries);
+            var comment = "IN " + invoiceDI.DocNum;
+            vJE.ReferenceDate = invoiceDI.DocDate;
+            vJE.DueDate = invoiceDI.DocDate;
+            vJE.TaxDate = invoiceDI.DocDate;
+            vJE.Memo = comment.Length < 50 ? comment : comment.Substring(0, 49);
+            vJE.Lines.BPLID = invoiceDI.BPL_IDAssignedToInvoice;
+            if (invoiceDI.DocCurrency == "GEL")
+            {
+                vJE.Lines.Debit = pensionAmountPaymentOnAccount;
+            }
+            else
+            {
+                vJE.Lines.FCCurrency = invoiceDI.DocCurrency;
+                vJE.Lines.FCDebit = pensionAmountPaymentOnAccount;
+            }
+
+            vJE.Lines.ShortName = invoiceDI.CardCode;
+
+            if (settings.UseDocControllAcc)
+            {
+                vJE.Lines.ControlAccount = invoiceDI.ControlAccount;
+            }
+
+
+            vJE.Lines.Add();
+            vJE.Lines.BPLID = invoiceDI.BPL_IDAssignedToInvoice;
+
+            if (invoiceDI.DocCurrency == "GEL")
+            {
+                vJE.Lines.Credit = pensionAmountPaymentOnAccount;
+                vJE.Lines.FCCredit = 0;
+            }
+            else
+            {
+                vJE.Lines.FCCurrency = invoiceDI.DocCurrency;
                 vJE.Lines.FCCredit = pensionAmountPaymentOnAccount;
             }
             if (string.IsNullOrWhiteSpace(settings.PensionAccCr))

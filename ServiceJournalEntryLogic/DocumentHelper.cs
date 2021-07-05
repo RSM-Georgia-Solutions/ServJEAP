@@ -352,7 +352,7 @@ namespace ServiceJournalEntryLogic
                         //    invoiceDi.Series, invoiceDi.Comments, invoiceDi.DocDate,
                         //    invoiceDi.BPL_IDAssignedToInvoice, invoiceDi.DocCurrency);
 
-                        incomeTaxPayerTransId = PostvJEFromInvoice(settings, invoiceDi, incomeTaxAmount);
+                        incomeTaxPayerTransId = PostIncomeTaxvJEFromInvoice(settings, invoiceDi, incomeTaxAmount);
 
                         results.Add(new Result
                         {
@@ -379,7 +379,7 @@ namespace ServiceJournalEntryLogic
                         //    invoiceDi.Series, invoiceDi.Comments, invoiceDi.DocDate,
                         //    invoiceDi.BPL_IDAssignedToInvoice, invoiceDi.DocCurrency);
 
-                        string incomeTaxPayerTransId = PostvJEFromInvoice(settings, invoiceDi, incomeTaxAmount);
+                        string incomeTaxPayerTransId = PostIncomeTaxvJEFromInvoice(settings, invoiceDi, incomeTaxAmount);
                         results.Add(new Result
                         {
                             IsSuccessCode = true,
@@ -399,7 +399,7 @@ namespace ServiceJournalEntryLogic
             return results;
         }
 
-        private string PostvJEFromInvoice(Settings settings, Documents invoiceDi, double incomeTaxAmount)
+        private string PostIncomeTaxvJEFromInvoice(Settings settings, Documents invoiceDi, double incomeTaxAmount)
         {
             string incomeTaxPayerTransId;
             JournalEntries vJE = (JournalEntries)_company.GetBusinessObject(BoObjectTypes.oJournalEntries);
@@ -475,6 +475,69 @@ namespace ServiceJournalEntryLogic
             }
 
             return incomeTaxPayerTransId;
+        }
+
+
+        public string PostPensionvJEFromInvoice(Settings settings, Documents invoiceDI, double pensionAmountPaymentOnAccount)
+        {
+            JournalEntries vJE = (JournalEntries)_company.GetBusinessObject(BoObjectTypes.oJournalEntries);
+            var comment = "IN " + invoiceDI.DocNum;
+            vJE.ReferenceDate = invoiceDI.DocDate;
+            vJE.DueDate = invoiceDI.DocDate;
+            vJE.TaxDate = invoiceDI.DocDate;
+            vJE.Memo = comment.Length < 50 ? comment : comment.Substring(0, 49);
+            vJE.Lines.BPLID = invoiceDI.BPL_IDAssignedToInvoice;
+            if (invoiceDI.DocCurrency == "GEL")
+            {
+                vJE.Lines.Debit = pensionAmountPaymentOnAccount;
+            }
+            else
+            {
+                vJE.Lines.FCCurrency = invoiceDI.DocCurrency;
+                vJE.Lines.FCDebit = pensionAmountPaymentOnAccount;
+            }
+
+            vJE.Lines.ShortName = invoiceDI.CardCode;
+
+            if (settings.UseDocControllAcc)
+            {
+                vJE.Lines.ControlAccount = invoiceDI.ControlAccount;
+            }
+
+
+            vJE.Lines.Add();
+            vJE.Lines.BPLID = invoiceDI.BPL_IDAssignedToInvoice;
+
+            if (invoiceDI.DocCurrency == "GEL")
+            {
+                vJE.Lines.Credit = pensionAmountPaymentOnAccount;
+                vJE.Lines.FCCredit = 0;
+            }
+            else
+            {
+                vJE.Lines.FCCurrency = invoiceDI.DocCurrency;
+                vJE.Lines.FCCredit = pensionAmountPaymentOnAccount;
+            }
+            if (string.IsNullOrWhiteSpace(settings.PensionAccCr))
+            {
+                vJE.Lines.ShortName = settings.PensionControlAccCr;
+            }
+            else
+            {
+                vJE.Lines.AccountCode = settings.PensionAccCr;
+            }
+            vJE.Lines.Add();
+            string transId = "";
+            var ret = vJE.Add();
+            if (ret == 0)
+            {
+                transId = _company.GetNewObjectKey();
+            }
+            else
+            {
+                throw new Exception(_company.GetLastErrorDescription());
+            }
+            return transId;
         }
 
         public IEnumerable<Result> PostIncomeTaxFromOutgoing(string invDocEntry)
