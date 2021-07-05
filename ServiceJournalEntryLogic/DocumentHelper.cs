@@ -5,17 +5,18 @@ using ServiceJournalEntryLogic.Providers;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Xml;
 
 namespace ServiceJournalEntryLogic
 {
     public class DocumentHelper : IDocumentHelper
     {
-        private readonly Company _company;
+        private readonly Company oCompany;
         public SettingsProvider settingsProvider;
 
         public DocumentHelper(Company company, SettingsProvider settingsProvider)
         {
-            _company = company;
+            oCompany = company;
             this.settingsProvider = settingsProvider;
         }
 
@@ -175,11 +176,12 @@ namespace ServiceJournalEntryLogic
 
         public IEnumerable<Result> PostIncomeTaxFromCreditMemo(string invDocEntry)
         {
+            Settings settings = settingsProvider.Get();
             List<Result> results = new List<Result>();
-            Documents invoiceDi = (Documents)_company.GetBusinessObject(BoObjectTypes.oPurchaseCreditNotes);
+            Documents invoiceDi = (Documents)oCompany.GetBusinessObject(BoObjectTypes.oPurchaseCreditNotes);
             invoiceDi.GetByKey(int.Parse(invDocEntry, CultureInfo.InvariantCulture));
             string bpCode = invoiceDi.CardCode;
-            Recordset recSet = (Recordset)_company.GetBusinessObject(BoObjectTypes.BoRecordset);
+            Recordset recSet = (Recordset)oCompany.GetBusinessObject(BoObjectTypes.BoRecordset);
             recSet.DoQuery2(
                 $"SELECT U_IncomeTaxPayer, U_PensionPayer FROM OCRD WHERE OCRD.CardCode = N'{bpCode}'");
             bool isIncomeTaxPayer = recSet.Fields.Item("U_IncomeTaxPayer").Value.ToString() == "01";
@@ -197,7 +199,7 @@ namespace ServiceJournalEntryLogic
             }
 
             BusinessPartners bp =
-                (BusinessPartners)_company.GetBusinessObject(BoObjectTypes.oBusinessPartners);
+                (BusinessPartners)oCompany.GetBusinessObject(BoObjectTypes.oBusinessPartners);
             bp.GetByKey(invoiceDi.CardCode);
 
             var incomeTaxPayerPercent = double.Parse(bp.UserFields.Fields.Item("U_IncomeTaxPayerPercent").Value.ToString(),
@@ -240,10 +242,11 @@ namespace ServiceJournalEntryLogic
                 {
                     try
                     {
-                        string incomeTaxPayerTransId = AddJournalEntry(_company, incomeTaxAccCr,
-                            incomeTaxAccDr, incomeTaxControlAccCr, invoiceDi.CardCode, -incomeTaxAmount,
-                            invoiceDi.Series, invoiceDi.Comments, invoiceDi.DocDate,
-                            invoiceDi.BPL_IDAssignedToInvoice, invoiceDi.DocCurrency);
+                        //string incomeTaxPayerTransId = AddJournalEntry(oCompany, incomeTaxAccCr,
+                        //    incomeTaxAccDr, incomeTaxControlAccCr, invoiceDi.CardCode, -incomeTaxAmount,
+                        //    invoiceDi.Series, invoiceDi.Comments, invoiceDi.DocDate,
+                        //    invoiceDi.BPL_IDAssignedToInvoice, invoiceDi.DocCurrency);
+                        string incomeTaxPayerTransId = PostIncomeTaxvJEFromDocument(settings, invoiceDi, incomeTaxAmount);
                         results.Add(new Result
                         {
                             IsSuccessCode = true,
@@ -262,10 +265,11 @@ namespace ServiceJournalEntryLogic
                 {
                     try
                     {
-                        string incomeTaxPayerTransId = AddJournalEntry(_company, incomeTaxAccCr,
-                            incomeTaxAccDr, incomeTaxControlAccCr, invoiceDi.CardCode, incomeTaxAmount,
-                            invoiceDi.Series, invoiceDi.Comments, invoiceDi.DocDate,
-                            invoiceDi.BPL_IDAssignedToInvoice, invoiceDi.DocCurrency);
+                        //string incomeTaxPayerTransId = AddJournalEntry(oCompany, incomeTaxAccCr,
+                        //    incomeTaxAccDr, incomeTaxControlAccCr, invoiceDi.CardCode, incomeTaxAmount,
+                        //    invoiceDi.Series, invoiceDi.Comments, invoiceDi.DocDate,
+                        //    invoiceDi.BPL_IDAssignedToInvoice, invoiceDi.DocCurrency);
+                        string incomeTaxPayerTransId = PostIncomeTaxvJEFromDocument(settings, invoiceDi, incomeTaxAmount);
 
                         results.Add(new Result
                         {
@@ -295,19 +299,19 @@ namespace ServiceJournalEntryLogic
             }
 
             #region vjeDetails
-            Documents invoiceDi = (Documents)_company.GetBusinessObject(BoObjectTypes.oPurchaseInvoices);
+            Documents invoiceDi = (Documents)oCompany.GetBusinessObject(BoObjectTypes.oPurchaseInvoices);
             invoiceDi.GetByKey(int.Parse(invDocEntry, CultureInfo.InvariantCulture));
             string bpCode = invoiceDi.CardCode;
             bool isFc = invoiceDi.DocCurrency != "GEL";
 
-            BusinessPartners bp = (BusinessPartners)_company.GetBusinessObject(BoObjectTypes.oBusinessPartners);
+            BusinessPartners bp = (BusinessPartners)oCompany.GetBusinessObject(BoObjectTypes.oBusinessPartners);
             bp.GetByKey(invoiceDi.CardCode);
             bool isIncomeTaxPayer = (string)bp.UserFields.Fields.Item("U_IncomeTaxPayer").Value == "01";
             bool isPensionPayer = (string)bp.UserFields.Fields.Item("U_PensionPayer").Value == "01";
             var incomeTaxPayerPercent = (double)bp.UserFields.Fields.Item("U_IncomeTaxPayerPercent").Value;
             var pensionPayerPercent = (double)bp.UserFields.Fields.Item("U_PensionPayerPercent").Value;
 
-            var oItem = (Items)_company.GetBusinessObject(BoObjectTypes.oItems); 
+            var oItem = (Items)oCompany.GetBusinessObject(BoObjectTypes.oItems); 
             #endregion
 
             for (int i = 0; i < invoiceDi.Lines.Count; i++)
@@ -352,7 +356,7 @@ namespace ServiceJournalEntryLogic
                         //    invoiceDi.Series, invoiceDi.Comments, invoiceDi.DocDate,
                         //    invoiceDi.BPL_IDAssignedToInvoice, invoiceDi.DocCurrency);
 
-                        incomeTaxPayerTransId = PostIncomeTaxvJEFromInvoice(settings, invoiceDi, incomeTaxAmount);
+                        incomeTaxPayerTransId = PostIncomeTaxvJEFromDocument(settings, invoiceDi, incomeTaxAmount);
 
                         results.Add(new Result
                         {
@@ -379,7 +383,7 @@ namespace ServiceJournalEntryLogic
                         //    invoiceDi.Series, invoiceDi.Comments, invoiceDi.DocDate,
                         //    invoiceDi.BPL_IDAssignedToInvoice, invoiceDi.DocCurrency);
 
-                        string incomeTaxPayerTransId = PostIncomeTaxvJEFromInvoice(settings, invoiceDi, incomeTaxAmount);
+                        string incomeTaxPayerTransId = PostIncomeTaxvJEFromDocument(settings, invoiceDi, incomeTaxAmount);
                         results.Add(new Result
                         {
                             IsSuccessCode = true,
@@ -399,10 +403,10 @@ namespace ServiceJournalEntryLogic
             return results;
         }
 
-        private string PostIncomeTaxvJEFromInvoice(Settings settings, Documents invoiceDi, double incomeTaxAmount)
+        private string PostIncomeTaxvJEFromDocument(Settings settings, Documents invoiceDi, double incomeTaxAmount)
         {
             string incomeTaxPayerTransId;
-            JournalEntries vJE = (JournalEntries)_company.GetBusinessObject(BoObjectTypes.oJournalEntries);
+            JournalEntries vJE = (JournalEntries)oCompany.GetBusinessObject(BoObjectTypes.oJournalEntries);
             vJE.ReferenceDate = invoiceDi.DocDate;
             vJE.DueDate = invoiceDi.DocDate;
             vJE.TaxDate = invoiceDi.DocDate;
@@ -467,11 +471,11 @@ namespace ServiceJournalEntryLogic
             var ret = vJE.Add();
             if (ret == 0)
             {
-                incomeTaxPayerTransId = _company.GetNewObjectKey();
+                incomeTaxPayerTransId = oCompany.GetNewObjectKey();
             }
             else
             {
-                throw new Exception(_company.GetLastErrorDescription());
+                throw new Exception(oCompany.GetLastErrorDescription());
             }
 
             return incomeTaxPayerTransId;
@@ -480,7 +484,7 @@ namespace ServiceJournalEntryLogic
 
         public string PostPensionvJEFromInvoice(Settings settings, Documents invoiceDI, double pensionAmountPaymentOnAccount)
         {
-            JournalEntries vJE = (JournalEntries)_company.GetBusinessObject(BoObjectTypes.oJournalEntries);
+            JournalEntries vJE = (JournalEntries)oCompany.GetBusinessObject(BoObjectTypes.oJournalEntries);
             var comment = "IN " + invoiceDI.DocNum;
             vJE.ReferenceDate = invoiceDI.DocDate;
             vJE.DueDate = invoiceDI.DocDate;
@@ -531,11 +535,11 @@ namespace ServiceJournalEntryLogic
             var ret = vJE.Add();
             if (ret == 0)
             {
-                transId = _company.GetNewObjectKey();
+                transId = oCompany.GetNewObjectKey();
             }
             else
             {
-                throw new Exception(_company.GetLastErrorDescription());
+                throw new Exception(oCompany.GetLastErrorDescription());
             }
             return transId;
         }
@@ -543,11 +547,11 @@ namespace ServiceJournalEntryLogic
         public IEnumerable<Result> PostIncomeTaxFromOutgoing(string invDocEntry)
         {
             List<Result> results = new List<Result>();
-            Documents invoiceDi = (Documents)_company.GetBusinessObject(BoObjectTypes.oPurchaseInvoices);
+            Documents invoiceDi = (Documents)oCompany.GetBusinessObject(BoObjectTypes.oPurchaseInvoices);
             invoiceDi.GetByKey(int.Parse(invDocEntry, CultureInfo.InvariantCulture));
             string bpCode = invoiceDi.CardCode;
 
-            Recordset recSet = (Recordset)_company.GetBusinessObject(BoObjectTypes.BoRecordset);
+            Recordset recSet = (Recordset)oCompany.GetBusinessObject(BoObjectTypes.BoRecordset);
 
 
             recSet.DoQuery2(
@@ -568,7 +572,7 @@ namespace ServiceJournalEntryLogic
             }
 
             SAPbobsCOM.BusinessPartners bp =
-                (SAPbobsCOM.BusinessPartners)_company.GetBusinessObject(BoObjectTypes.oBusinessPartners);
+                (SAPbobsCOM.BusinessPartners)oCompany.GetBusinessObject(BoObjectTypes.oBusinessPartners);
             bp.GetByKey(invoiceDi.CardCode);
 
             var incomeTaxPayerPercent = double.Parse(bp.UserFields.Fields.Item("U_IncomeTaxPayerPercent").Value.ToString(),
@@ -613,7 +617,7 @@ namespace ServiceJournalEntryLogic
                 {
                     try
                     {
-                        string incomeTaxPayerTransId = AddJournalEntry(_company, incomeTaxAccCr,
+                        string incomeTaxPayerTransId = AddJournalEntry(oCompany, incomeTaxAccCr,
                             incomeTaxAccDr, incomeTaxControlAccCr, invoiceDi.CardCode, incomeTaxAmount,
                             invoiceDi.Series, invoiceDi.Comments, invoiceDi.DocDate,
                             invoiceDi.BPL_IDAssignedToInvoice, invoiceDi.DocCurrency);
@@ -635,7 +639,7 @@ namespace ServiceJournalEntryLogic
                 {
                     try
                     {
-                        string incomeTaxPayerTransId = AddJournalEntry(_company, incomeTaxAccCr,
+                        string incomeTaxPayerTransId = AddJournalEntry(oCompany, incomeTaxAccCr,
                             incomeTaxAccDr, incomeTaxControlAccCr, invoiceDi.CardCode, -incomeTaxAmount,
                             invoiceDi.Series, invoiceDi.Comments, invoiceDi.DocDate,
                             invoiceDi.BPL_IDAssignedToInvoice, invoiceDi.DocCurrency);
@@ -661,11 +665,11 @@ namespace ServiceJournalEntryLogic
         public IEnumerable<Result> PostPension(string invDocEntry)
         {
             List<Result> results = new List<Result>();
-            Documents invoiceDi = (Documents)_company.GetBusinessObject(BoObjectTypes.oPurchaseInvoices);
+            Documents invoiceDi = (Documents)oCompany.GetBusinessObject(BoObjectTypes.oPurchaseInvoices);
             invoiceDi.GetByKey(int.Parse(invDocEntry, CultureInfo.InvariantCulture));
             string bpCode = invoiceDi.CardCode;
 
-            Recordset recSet = (Recordset)_company.GetBusinessObject(BoObjectTypes.BoRecordset);
+            Recordset recSet = (Recordset)oCompany.GetBusinessObject(BoObjectTypes.BoRecordset);
 
 
             recSet.DoQuery2(
@@ -680,7 +684,7 @@ namespace ServiceJournalEntryLogic
             string pensionControlAccCr = recSet.Fields.Item("U_PensionControlAccCr").Value.ToString();
 
             SAPbobsCOM.BusinessPartners bp =
-                (SAPbobsCOM.BusinessPartners)_company.GetBusinessObject(BoObjectTypes.oBusinessPartners);
+                (SAPbobsCOM.BusinessPartners)oCompany.GetBusinessObject(BoObjectTypes.oBusinessPartners);
             bp.GetByKey(invoiceDi.CardCode);
 
             var incomeTaxPayerPercent = double.Parse(bp.UserFields.Fields.Item("U_IncomeTaxPayerPercent").Value.ToString(),
@@ -707,7 +711,7 @@ namespace ServiceJournalEntryLogic
                     //invoiceDi.CancelStatus == CancelStatusEnum.csNo
                     try
                     {
-                        string incometaxpayertransidcomp = AddJournalEntry(_company,
+                        string incometaxpayertransidcomp = AddJournalEntry(oCompany,
                             pensionAccCr, pensionAccDr, pensionControlAccCr, pensionControlAccDr, pensionAmount,
                             invoiceDi.Series, invoiceDi.Comments, invoiceDi.DocDate,
                             invoiceDi.BPL_IDAssignedToInvoice, invoiceDi.DocCurrency);
@@ -727,7 +731,7 @@ namespace ServiceJournalEntryLogic
 
                     try
                     {
-                        string incometaxpayertransid = AddJournalEntry(_company, pensionAccCr,
+                        string incometaxpayertransid = AddJournalEntry(oCompany, pensionAccCr,
                             "", pensionControlAccCr, invoiceDi.CardCode, pensionAmount, invoiceDi.Series,
                             invoiceDi.Comments, invoiceDi.DocDate, invoiceDi.BPL_IDAssignedToInvoice,
                             invoiceDi.DocCurrency);
@@ -753,6 +757,900 @@ namespace ServiceJournalEntryLogic
                 }
             }
             return results;
+        }
+
+        public void OnPaymentAdd(string invDocEnttry)
+        {
+            var settings = settingsProvider.Get();
+            //var invObjectString = pVal.ObjectKey;
+            //XmlDocument xmlDoc = new XmlDocument();
+            //xmlDoc.LoadXml(invObjectString);
+            //string invDocEnttry = string.Empty;
+            //try
+            //{
+            //    invDocEnttry = xmlDoc.GetElementsByTagName("DocEntry").Item(0).InnerText;
+            //}
+            //catch (Exception e)
+            //{
+            //    SAPbouiCOM.Framework.Application.SBO_Application.SetStatusBarMessage("Invalid Document Number",
+            //        BoMessageTime.bmt_Short, true);
+            //}
+
+            Payments outgoingPaymentDi = (Payments)oCompany.GetBusinessObject(BoObjectTypes.oVendorPayments);
+            outgoingPaymentDi.GetByKey(int.Parse(invDocEnttry, CultureInfo.InvariantCulture));
+            Recordset recSet = (Recordset)oCompany.GetBusinessObject(BoObjectTypes.BoRecordset);
+            string bpCode = outgoingPaymentDi.CardCode;
+            recSet.DoQuery2($"SELECT U_IncomeTaxPayer, U_PensionPayer FROM OCRD WHERE OCRD.CardCode = N'{bpCode}'");
+            bool isPensionPayer = recSet.Fields.Item("U_PensionPayer").Value.ToString() == "01";
+            bool isIncomeTaxPayer = recSet.Fields.Item("U_IncomeTaxPayer").Value.ToString() == "01";
+            recSet.DoQuery($"Select * From [@RSM_SERVICE_PARAMS]");
+            string pensionAccDr = recSet.Fields.Item("U_PensionAccDr").Value.ToString();
+            string incomeTaxAccDr = recSet.Fields.Item("U_IncomeTaxAccDr").Value.ToString();
+            string incomeTaxAccCr = recSet.Fields.Item("U_IncomeTaxAccCr").Value.ToString();
+            string pensionAccCr = recSet.Fields.Item("U_PensionAccCr").Value.ToString();
+            string pensionControlAccDr = recSet.Fields.Item("U_PensionControlAccDr").Value.ToString();
+            string pensionControlAccCr = recSet.Fields.Item("U_PensionControlAccCr").Value.ToString();
+            string incomeControlTaxAccDr = recSet.Fields.Item("U_IncomeControlTaxAccDr").Value.ToString();
+            string incomeControlTaxAccCr = recSet.Fields.Item("U_IncomeControlTaxAccCr").Value.ToString();
+            bool incomeTaxOnInvoice = Convert.ToBoolean(recSet.Fields.Item("U_IncomeTaxOnInvoice").Value.ToString());
+
+
+            var x = outgoingPaymentDi.GetAsXML();
+            XmlDocument xmlDoc2 = new XmlDocument();
+            xmlDoc2.LoadXml(x);
+            string paymentOnAcc = xmlDoc2.GetElementsByTagName("NoDocSum").Item(0).InnerText;
+            string paymentOnAccFc = xmlDoc2.GetElementsByTagName("NoDocSumFC").Item(0).InnerText;
+
+            var price = "122$00";
+            var nfi = new NumberFormatInfo
+            {
+                CurrencyDecimalSeparator = oCompany.GetCompanyService().GetAdminInfo().DecimalSeparator,
+                CurrencyGroupSeparator = oCompany.GetCompanyService().GetAdminInfo().ThousandsSeparator
+            };
+
+            // var ok = decimal.Parse(price, NumberStyles.Currency, nfi);
+
+
+
+            if (!string.IsNullOrWhiteSpace(paymentOnAcc))
+            {
+                if (decimal.Parse(paymentOnAcc, NumberStyles.Currency, nfi) != 0)
+                {
+                    double pensionAmountPaymentOnAccount;
+                    double incomeTaxAmountPaymentOnAccount;
+                    if (outgoingPaymentDi.DocCurrency != "GEL")
+                    {
+                        pensionAmountPaymentOnAccount = Math.Round(double.Parse(paymentOnAccFc) / 0.784 * 0.02,
+                         6);
+                        incomeTaxAmountPaymentOnAccount = (double.Parse(paymentOnAccFc) / 0.784 - pensionAmountPaymentOnAccount) * 0.2;
+
+                        if (!isIncomeTaxPayer)
+                        {
+                            pensionAmountPaymentOnAccount = Math.Round(double.Parse(paymentOnAccFc) / 0.98 * 0.02,
+                                6);
+                        }
+                    }
+                    else
+                    {
+                        pensionAmountPaymentOnAccount = Math.Round(double.Parse(paymentOnAcc) / 0.784 * 0.02,
+                      6);
+                        incomeTaxAmountPaymentOnAccount =
+                          (double.Parse(paymentOnAcc) / 0.784 - pensionAmountPaymentOnAccount) * 0.2;
+
+                        if (!isIncomeTaxPayer)
+                        {
+                            pensionAmountPaymentOnAccount = Math.Round(double.Parse(paymentOnAcc) / 0.98 * 0.02,
+                                6);
+                        }
+                    }
+
+
+                    if (pensionAmountPaymentOnAccount != 0)
+                    {
+                        try
+                        {
+                            if (isPensionPayer)
+                            {
+                                string transId = AddJournalEntry(oCompany,
+                                    pensionAccCr,
+                                    pensionAccDr,
+                                    pensionControlAccCr,
+                                    pensionControlAccDr,
+                                    pensionAmountPaymentOnAccount,
+                                    outgoingPaymentDi.Series,
+                                    "OP " + outgoingPaymentDi.DocNum,
+                                    outgoingPaymentDi.DocDate,
+                                    outgoingPaymentDi.BPLID,
+                                    outgoingPaymentDi.DocCurrency);
+
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            SAPbouiCOM.Framework.Application.SBO_Application.MessageBox(e.Message);
+                        }
+
+                        try
+                        {
+                            if (isPensionPayer)
+                            {
+                                //string transId = string.Empty;
+                                //if (oldMethod)
+                                //{
+                                //    transId = DocumentHelper.AddJournalEntry(oCompany,
+                                //    pensionAccCr,
+                                //    "",
+                                //    pensionControlAccCr,
+                                //    outgoingPaymentDi.CardCode,
+                                //    pensionAmountPaymentOnAccount,
+                                //    outgoingPaymentDi.Series,
+                                //    "OP " + outgoingPaymentDi.DocNum,
+                                //    outgoingPaymentDi.DocDate,
+                                //    outgoingPaymentDi.BPLID,
+                                //    outgoingPaymentDi.DocCurrency);
+                                //}
+                                //else
+                                string transId = PostvJEFromPayment(settings, outgoingPaymentDi, pensionAmountPaymentOnAccount);
+
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            SAPbouiCOM.Framework.Application.SBO_Application.MessageBox(e.Message);
+                        }
+                    }
+
+                    if (isIncomeTaxPayer && !incomeTaxOnInvoice)
+                    {
+                        if (outgoingPaymentDi.DocCurrency != "GEL")
+                        {
+                            if (!isPensionPayer)
+                            {
+                                incomeTaxAmountPaymentOnAccount = Math.Round(double.Parse(paymentOnAccFc) / 0.8 * 0.2,
+                                    6);
+                            }
+                        }
+                        else
+                        {
+                            if (!isPensionPayer)
+                            {
+                                incomeTaxAmountPaymentOnAccount = Math.Round(double.Parse(paymentOnAcc) / 0.8 * 0.2,
+                                    6);
+                            }
+                        }
+
+
+                        //string transId2 = AddJournalEntry(oCompany,
+                        //    incomeTaxAccCr,
+                        //    "",
+                        //    pensionControlAccCr,
+                        //    outgoingPaymentDi.CardCode,
+                        //    incomeTaxAmountPaymentOnAccount,
+                        //    outgoingPaymentDi.Series,
+                        //    "OP " + outgoingPaymentDi.DocNum,
+                        //    outgoingPaymentDi.DocDate,
+                        //    outgoingPaymentDi.BPLID,
+                        //    outgoingPaymentDi.DocCurrency);
+
+                        string transId2 = PostIncomeTaxFromPayment(settings, outgoingPaymentDi, incomeTaxAmountPaymentOnAccount);
+
+                    }
+                }
+            }
+
+            for (int i = 0; i < outgoingPaymentDi.Invoices.Count; i++)
+            {
+                outgoingPaymentDi.Invoices.SetCurrentLine(i);
+
+                if (outgoingPaymentDi.Invoices.InvoiceType == BoRcptInvTypes.it_PurchaseInvoice)
+                {
+                    Documents invoiceDi = (Documents)oCompany.GetBusinessObject(BoObjectTypes.oPurchaseInvoices);
+                    if (outgoingPaymentDi.Invoices.DocEntry == 0)
+                    {
+                        continue;
+                    }
+                    invoiceDi.GetByKey(outgoingPaymentDi.Invoices.DocEntry);
+
+                    for (int j = 0; j < invoiceDi.Lines.Count; j++)
+                    {
+                        invoiceDi.Lines.SetCurrentLine(j);
+                        recSet.DoQuery2($"SELECT U_PensionLiable FROM OITM WHERE OITM.ItemCode = N'{invoiceDi.Lines.ItemCode}'");
+
+
+                        if (invoiceDi.DocType != BoDocumentTypes.dDocument_Service)
+                        {
+                            bool isPensionLiable = recSet.Fields.Item("U_PensionLiable").Value.ToString() == "01";
+
+                            if (!isPensionLiable)
+                            {
+                                continue;
+                            }
+                        }
+
+                        double pensionAmount = outgoingPaymentDi.DocCurrency != "GEL" ? Math.Round(outgoingPaymentDi.Invoices.AppliedFC / 0.784 * 0.02, 6) : Math.Round(outgoingPaymentDi.Invoices.SumApplied / 0.784 * 0.02, 6);
+
+                        if (!isIncomeTaxPayer)
+                        {
+                            pensionAmount = outgoingPaymentDi.DocCurrency != "GEL" ? Math.Round(outgoingPaymentDi.Invoices.AppliedFC / 0.98 * 0.02, 6) : Math.Round(outgoingPaymentDi.Invoices.SumApplied / 0.98 * 0.02,
+                                6);
+                        }
+
+                        try
+                        {
+                            if (isPensionPayer)
+                            {
+                                string incometaxpayertransidcomp = AddJournalEntry(oCompany,
+                                    pensionAccCr,
+                                    pensionAccDr,
+                                    pensionControlAccCr,
+                                    pensionControlAccDr,
+                                    pensionAmount,
+                                    invoiceDi.Series,
+                                    "IN " + invoiceDi.DocNum,
+                                    invoiceDi.DocDate,
+                                    invoiceDi.BPL_IDAssignedToInvoice,
+                                    invoiceDi.DocCurrency);
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            SAPbouiCOM.Framework.Application.SBO_Application.MessageBox(e.Message);
+                        }
+
+                        try
+                        {
+                            if (isPensionPayer)
+                            {
+                                //string incometaxpayertransid = DocumentHelper.AddJournalEntry(oCompany,
+                                //    pensionAccCr,
+                                //    "",
+                                //    pensionControlAccCr,
+                                //    invoiceDi.CardCode,
+                                //    pensionAmount,
+                                //    invoiceDi.Series,
+                                //    "IN " + invoiceDi.DocNum,
+                                //    invoiceDi.DocDate,
+                                //    invoiceDi.BPL_IDAssignedToInvoice,
+                                //    invoiceDi.DocCurrency);
+
+
+                                string incometaxpayertransid = PostvJEFromPaymentInvoce(settings, invoiceDi, pensionAmount);
+
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            SAPbouiCOM.Framework.Application.SBO_Application.MessageBox(e.Message);
+                        }
+
+
+                    }
+
+                }
+
+                else
+                {
+                    double pensionAmount = outgoingPaymentDi.DocCurrency != "GEL" ? Math.Round(outgoingPaymentDi.Invoices.AppliedFC / 0.784 * 0.02, 6) : Math.Round(outgoingPaymentDi.Invoices.SumApplied / 0.784 * 0.02, 6);
+                    if (!isIncomeTaxPayer)
+                    {
+                        pensionAmount = outgoingPaymentDi.DocCurrency != "GEL" ? Math.Round(outgoingPaymentDi.Invoices.AppliedFC / 0.98 * 0.02, 6) : Math.Round(outgoingPaymentDi.Invoices.SumApplied / 0.98 * 0.02,
+                            6);
+                    }
+                    try
+                    {
+                        if (isPensionPayer)
+                        {
+                            string incometaxpayertransidcomp = AddJournalEntry(oCompany,
+                                pensionAccCr,
+                                pensionAccDr,
+                                pensionControlAccCr,
+                                pensionControlAccDr,
+                                pensionAmount,
+                                outgoingPaymentDi.Series,
+                                outgoingPaymentDi.Invoices.InvoiceType + " " + outgoingPaymentDi.DocNum,
+                                outgoingPaymentDi.DocDate,
+                                outgoingPaymentDi.BPLID,
+                                outgoingPaymentDi.DocCurrency);
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        SAPbouiCOM.Framework.Application.SBO_Application.MessageBox(e.Message);
+                    }
+
+                    try
+                    {
+                        if (isPensionPayer)
+                        {
+                            string incometaxpayertransid = AddJournalEntry(oCompany,
+                                pensionAccCr,
+                                "",
+                                pensionControlAccCr,
+                                outgoingPaymentDi.CardCode,
+                                pensionAmount,
+                                outgoingPaymentDi.Series,
+                                outgoingPaymentDi.Invoices.InvoiceType + " " + outgoingPaymentDi.DocNum,
+                                outgoingPaymentDi.DocDate,
+                                outgoingPaymentDi.BPLID,
+                                outgoingPaymentDi.DocCurrency);
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        SAPbouiCOM.Framework.Application.SBO_Application.MessageBox(e.Message);
+                    }
+                }
+                if (isIncomeTaxPayer && !incomeTaxOnInvoice)
+                {
+                    if (outgoingPaymentDi.Invoices.SumApplied == 0)
+                    {
+                        continue;
+                    }
+                    double pensionAmount2 = outgoingPaymentDi.DocCurrency != "GEL" ? Math.Round(outgoingPaymentDi.Invoices.AppliedFC / 0.784 * 0.02, 6) : Math.Round(outgoingPaymentDi.Invoices.SumApplied / 0.784 * 0.02, 6);
+                    double taxPayerAmount = outgoingPaymentDi.DocCurrency != "GEL" ? (outgoingPaymentDi.Invoices.AppliedFC / 0.784 - pensionAmount2) * 0.2 : (outgoingPaymentDi.Invoices.SumApplied / 0.784 - pensionAmount2) * 0.2;
+                    if (!isPensionPayer)
+                    {
+                        taxPayerAmount = outgoingPaymentDi.DocCurrency != "GEL" ? outgoingPaymentDi.Invoices.AppliedFC / 0.8 * 0.2 : outgoingPaymentDi.Invoices.SumApplied / 0.8 * 0.2;
+                    }
+                    if (outgoingPaymentDi.Invoices.InvoiceType == BoRcptInvTypes.it_PurchaseInvoice)
+                    {
+                        Documents invoiceDi = (Documents)oCompany.GetBusinessObject(BoObjectTypes.oPurchaseInvoices);
+                        if (outgoingPaymentDi.Invoices.DocEntry == 0)
+                        {
+                            continue;
+                        }
+                        invoiceDi.GetByKey(outgoingPaymentDi.Invoices.DocEntry);
+                        string incometaxpayertransid = PostIncomeTaxvJEFromDocument(settings, invoiceDi, taxPayerAmount);
+                    }
+                    else
+                    {
+                        string incometaxpayertransid = AddJournalEntry(oCompany,
+                        incomeTaxAccCr,
+                        "",
+                        incomeControlTaxAccCr,
+                        outgoingPaymentDi.CardCode,
+                        taxPayerAmount,
+                        outgoingPaymentDi.Series,
+                        outgoingPaymentDi.Invoices.InvoiceType + " " + outgoingPaymentDi.DocNum,
+                        outgoingPaymentDi.DocDate,
+                        outgoingPaymentDi.BPLID,
+                        outgoingPaymentDi.DocCurrency);
+                    }
+                        
+                    //string incometaxpayertransid = PostIncomeTaxvJEFromDocument(settings, invoiceDi, taxPayerAmount)
+
+                }
+            }
+
+        }
+
+        private string PostIncomeTaxFromPayment(Settings settings, Payments outgoingPaymentDi, double incomeTaxAmountPaymentOnAccount)
+        {
+            string transId2;
+            var comment = "OP " + outgoingPaymentDi.DocNum;
+            JournalEntries vJE = (JournalEntries)oCompany.GetBusinessObject(BoObjectTypes.oJournalEntries);
+            vJE.ReferenceDate = outgoingPaymentDi.DocDate;
+            vJE.DueDate = outgoingPaymentDi.DocDate;
+            vJE.TaxDate = outgoingPaymentDi.DocDate;
+            vJE.Memo = comment.Length < 50 ? comment : comment.Substring(0, 49);
+
+            #region Line 1
+            vJE.Lines.BPLID = outgoingPaymentDi.BPLID;
+            if (outgoingPaymentDi.DocCurrency == "GEL")
+            {
+                vJE.Lines.Debit = incomeTaxAmountPaymentOnAccount;
+            }
+            else
+            {
+                vJE.Lines.FCCurrency = outgoingPaymentDi.DocCurrency;
+                vJE.Lines.FCDebit = incomeTaxAmountPaymentOnAccount;
+            }
+
+            if (string.IsNullOrWhiteSpace(settings.IncomeTaxAccDr))
+            {
+                vJE.Lines.ShortName = outgoingPaymentDi.CardCode;
+
+                if (settings.UseDocControllAcc)
+                {
+                    vJE.Lines.ControlAccount = outgoingPaymentDi.ControlAccount;
+                }
+            }
+            else
+            {
+                vJE.Lines.AccountCode = settings.IncomeTaxAccDr;
+            }
+
+            vJE.Lines.Add();
+            #endregion
+
+
+            #region Line 2
+            vJE.Lines.BPLID = outgoingPaymentDi.BPLID;
+
+            if (outgoingPaymentDi.DocCurrency == "GEL")
+            {
+                vJE.Lines.Credit = incomeTaxAmountPaymentOnAccount;
+                vJE.Lines.FCCredit = 0;
+            }
+            else
+            {
+                vJE.Lines.FCCurrency = outgoingPaymentDi.DocCurrency;
+                vJE.Lines.FCCredit = incomeTaxAmountPaymentOnAccount;
+            }
+
+            if (string.IsNullOrWhiteSpace(settings.IncomeTaxAccCr))
+            {
+                vJE.Lines.ShortName = settings.IncomeControlTaxAccCr;
+            }
+            else
+            {
+                vJE.Lines.AccountCode = settings.IncomeTaxAccCr;
+            }
+
+            vJE.Lines.Add();
+            #endregion
+
+            var ret = vJE.Add();
+            if (ret == 0)
+            {
+                transId2 = oCompany.GetNewObjectKey();
+            }
+            else
+            {
+                throw new Exception(oCompany.GetLastErrorDescription());
+            }
+            return transId2;
+        }
+
+        public void OnPaymentUpdate(string invDocEnttry)
+        {
+            var settings = settingsProvider.Get();
+
+            //var invObjectString = pVal.ObjectKey;
+            //XmlDocument xmlDoc = new XmlDocument();
+            //xmlDoc.LoadXml(invObjectString);
+            //string invDocEnttry = string.Empty;
+            //try
+            //{
+            //    invDocEnttry = xmlDoc.GetElementsByTagName("DocEntry").Item(0).InnerText;
+            //}
+            //catch (Exception e)
+            //{
+            //    SAPbouiCOM.Framework.Application.SBO_Application.SetStatusBarMessage("Invalid Document Number",
+            //        BoMessageTime.bmt_Short);
+            //}
+
+            Payments outgoingPaymentDi =
+                (Payments)oCompany.GetBusinessObject(BoObjectTypes.oVendorPayments);
+            outgoingPaymentDi.GetByKey(int.Parse(invDocEnttry,
+                CultureInfo.InvariantCulture));
+            if (outgoingPaymentDi.Cancelled == BoYesNoEnum.tYES)
+            {
+                Recordset recSet = (Recordset)oCompany.GetBusinessObject(BoObjectTypes.BoRecordset);
+                string bpCode = outgoingPaymentDi.CardCode;
+                recSet.DoQuery2(
+                    $"SELECT U_IncomeTaxPayer, U_PensionPayer FROM OCRD WHERE OCRD.CardCode = N'{bpCode}'");
+                bool isPensionPayer = recSet.Fields.Item("U_PensionPayer").Value.ToString() == "01";
+                bool isIncomeTaxPayer = recSet.Fields.Item("U_IncomeTaxPayer").Value.ToString() == "01";
+                recSet.DoQuery2($"Select * From [@RSM_SERVICE_PARAMS]");
+                string pensionAccDr = recSet.Fields.Item("U_PensionAccDr").Value.ToString();
+                string incomeTaxAccDr = recSet.Fields.Item("U_IncomeTaxAccDr").Value.ToString();
+                string incomeTaxAccCr = recSet.Fields.Item("U_IncomeTaxAccCr").Value.ToString();
+                string pensionAccCr = recSet.Fields.Item("U_PensionAccCr").Value.ToString();
+                string pensionControlAccDr = recSet.Fields.Item("U_PensionControlAccDr").Value.ToString();
+                string pensionControlAccCr = recSet.Fields.Item("U_PensionControlAccCr").Value.ToString();
+                string incomeControlTaxAccDr = recSet.Fields.Item("U_IncomeControlTaxAccDr").Value.ToString();
+                string incomeControlTaxAccCr = recSet.Fields.Item("U_IncomeControlTaxAccCr").Value.ToString();
+                bool incomeTaxOnInvoice =
+                    Convert.ToBoolean(recSet.Fields.Item("U_IncomeTaxOnInvoice").Value.ToString());
+
+                var nfi = new NumberFormatInfo
+                {
+                    CurrencyDecimalSeparator = oCompany.GetCompanyService().GetAdminInfo().DecimalSeparator,
+                    CurrencyGroupSeparator = oCompany.GetCompanyService().GetAdminInfo().ThousandsSeparator
+                };
+                var x = outgoingPaymentDi.GetAsXML();
+                XmlDocument xmlDoc2 = new XmlDocument();
+                xmlDoc2.LoadXml(x);
+                string paymentOnAcc = xmlDoc2.GetElementsByTagName("NoDocSum").Item(0).InnerText;
+
+
+                if (outgoingPaymentDi.DocCurrency != "GEL")
+                {
+                    string paymentOnAccFc = xmlDoc2.GetElementsByTagName("NoDocSumFC").Item(0).InnerText;
+                    paymentOnAcc = paymentOnAccFc;
+                }
+
+                if (!string.IsNullOrWhiteSpace(paymentOnAcc))
+                {
+                    if (decimal.Parse(paymentOnAcc,
+                            NumberStyles.Currency,
+                            nfi) != 0)
+                    {
+                        double pensionAmountPaymentOnAccount = Math.Round(double.Parse(paymentOnAcc) / 0.784 * 0.02,
+                            6);
+                        double incomeTaxAmountPaymentOnAccount =
+                            (double.Parse(paymentOnAcc) / 0.784 - pensionAmountPaymentOnAccount) * 0.2;
+
+                        if (!isIncomeTaxPayer)
+                        {
+                            pensionAmountPaymentOnAccount = Math.Round(double.Parse(paymentOnAcc) / 0.98 * 0.02,
+                                6);
+                        }
+
+                        if (pensionAmountPaymentOnAccount != 0)
+                        {
+                            try
+                            {
+                                if (isPensionPayer)
+                                {
+                                    string transId = AddJournalEntry(oCompany,
+                                        pensionAccCr,
+                                        pensionAccDr,
+                                        pensionControlAccCr,
+                                        pensionControlAccDr,
+                                        -pensionAmountPaymentOnAccount,
+                                        outgoingPaymentDi.Series,
+                                        "OP " + outgoingPaymentDi.DocNum,
+                                        outgoingPaymentDi.DocDate,
+                                        outgoingPaymentDi.BPLID,
+                                        outgoingPaymentDi.DocCurrency);
+                                }
+                            }
+                            catch (Exception e)
+                            {
+                                SAPbouiCOM.Framework.Application.SBO_Application.MessageBox(e.Message);
+                            }
+
+                            try
+                            {
+                                if (isPensionPayer)
+                                {
+                                    //string transId = DocumentHelper.AddJournalEntry(oCompany,
+                                    //    pensionAccCr,
+                                    //    "",
+                                    //    pensionControlAccCr,
+                                    //    outgoingPaymentDi.CardCode,
+                                    //    -pensionAmountPaymentOnAccount,
+                                    //    outgoingPaymentDi.Series,
+                                    //    "OP " + outgoingPaymentDi.DocNum,
+                                    //    outgoingPaymentDi.DocDate,
+                                    //    outgoingPaymentDi.BPLID,
+                                    //    outgoingPaymentDi.DocCurrency);
+                                    string transId = PostvJEFromPayment(settings, outgoingPaymentDi, pensionAmountPaymentOnAccount);
+                                }
+                            }
+                            catch (Exception e)
+                            {
+                                SAPbouiCOM.Framework.Application.SBO_Application.MessageBox(e.Message);
+                            }
+                        }
+
+                        if (isIncomeTaxPayer && !incomeTaxOnInvoice)
+                        {
+                            if (!isPensionPayer)
+                            {
+                                incomeTaxAmountPaymentOnAccount = Math.Round(double.Parse(paymentOnAcc) / 0.8 * 0.2,
+                                    6);
+                            }
+
+                            string transId2 = AddJournalEntry(oCompany,
+                                incomeTaxAccCr,
+                                "",
+                                incomeControlTaxAccCr,
+                                outgoingPaymentDi.CardCode,
+                                -incomeTaxAmountPaymentOnAccount,
+                                outgoingPaymentDi.Series,
+                                "OP " + outgoingPaymentDi.DocNum,
+                                outgoingPaymentDi.DocDate,
+                                outgoingPaymentDi.BPLID,
+                                outgoingPaymentDi.DocCurrency);
+                        }
+                    }
+                }
+
+                for (int i = 0; i < outgoingPaymentDi.Invoices.Count; i++)
+                {
+                    outgoingPaymentDi.Invoices.SetCurrentLine(i);
+
+                    if (outgoingPaymentDi.Invoices.InvoiceType == BoRcptInvTypes.it_PurchaseInvoice)
+                    {
+                        Documents invoiceDi =
+                            (Documents)oCompany.GetBusinessObject(BoObjectTypes.oPurchaseInvoices);
+                        if (outgoingPaymentDi.Invoices.DocEntry == 0)
+                        {
+                            continue;
+                        }
+
+                        invoiceDi.GetByKey(outgoingPaymentDi.Invoices.DocEntry);
+
+                        for (int j = 0; j < invoiceDi.Lines.Count; j++)
+                        {
+                            invoiceDi.Lines.SetCurrentLine(j);
+                            recSet.DoQuery2(
+                                $"SELECT U_PensionLiable FROM OITM WHERE OITM.ItemCode = N'{invoiceDi.Lines.ItemCode}'");
+
+
+                            if (invoiceDi.DocType != BoDocumentTypes.dDocument_Service)
+                            {
+                                bool isPensionLiable = recSet.Fields.Item("U_PensionLiable").Value.ToString() == "01";
+
+                                if (!isPensionLiable)
+                                {
+                                    continue;
+                                }
+                            }
+
+                            double pensionAmount = outgoingPaymentDi.DocCurrency != "GEL" ? Math.Round(outgoingPaymentDi.Invoices.AppliedFC / 0.784 * 0.02, 6) : Math.Round(outgoingPaymentDi.Invoices.SumApplied / 0.784 * 0.02, 6);
+
+                            if (!isIncomeTaxPayer)
+                            {
+                                pensionAmount = outgoingPaymentDi.DocCurrency != "GEL" ? Math.Round(outgoingPaymentDi.Invoices.AppliedFC / 0.98 * 0.02,
+                                    6) : Math.Round(outgoingPaymentDi.Invoices.SumApplied / 0.98 * 0.02,
+                                    6);
+                            }
+
+                            try
+                            {
+                                if (isPensionPayer)
+                                {
+                                    string incometaxpayertransidcomp = AddJournalEntry(oCompany,
+                                        pensionAccCr,
+                                        pensionAccDr,
+                                        pensionControlAccCr,
+                                        pensionControlAccDr,
+                                        -pensionAmount,
+                                        invoiceDi.Series,
+                                        "IN " + invoiceDi.DocNum,
+                                        invoiceDi.DocDate,
+                                        invoiceDi.BPL_IDAssignedToInvoice,
+                                        invoiceDi.DocCurrency);
+                                }
+                            }
+                            catch (Exception e)
+                            {
+                                SAPbouiCOM.Framework.Application.SBO_Application.MessageBox(e.Message);
+                            }
+
+                            try
+                            {
+                                if (isPensionPayer)
+                                {
+                                    //string incometaxpayertransid = DocumentHelper.AddJournalEntry(oCompany,
+                                    //    pensionAccCr,
+                                    //    "",
+                                    //    pensionControlAccCr,
+                                    //    invoiceDi.CardCode,
+                                    //    -pensionAmount,
+                                    //    invoiceDi.Series,
+                                    //    "IN " + invoiceDi.DocNum,
+                                    //    invoiceDi.DocDate,
+                                    //    invoiceDi.BPL_IDAssignedToInvoice,
+                                    //    invoiceDi.DocCurrency);
+                                    string incometaxpayertransid = PostvJEFromPaymentInvoce(settings, invoiceDi, -pensionAmount);
+                                }
+                            }
+                            catch (Exception e)
+                            {
+                                SAPbouiCOM.Framework.Application.SBO_Application.MessageBox(e.Message);
+                            }
+
+
+                        }
+
+                    }
+
+                    else
+                    {
+                        double pensionAmount = outgoingPaymentDi.DocCurrency != "GEL" ? Math.Round(outgoingPaymentDi.Invoices.AppliedFC / 0.784 * 0.02,
+                            6) : Math.Round(outgoingPaymentDi.Invoices.SumApplied / 0.784 * 0.02,
+                            6);
+                        if (!isIncomeTaxPayer)
+                        {
+                            pensionAmount = outgoingPaymentDi.DocCurrency != "GEL" ? Math.Round(outgoingPaymentDi.Invoices.AppliedFC / 0.98 * 0.02,
+                                6) : Math.Round(outgoingPaymentDi.Invoices.SumApplied / 0.98 * 0.02,
+                                6);
+                        }
+                        try
+                        {
+                            if (isPensionPayer)
+                            {
+                                string incometaxpayertransidcomp = AddJournalEntry(oCompany,
+                                    pensionAccCr,
+                                    pensionAccDr,
+                                    pensionControlAccCr,
+                                    pensionControlAccDr,
+                                    -pensionAmount,
+                                    outgoingPaymentDi.Series,
+                                    outgoingPaymentDi.Invoices.InvoiceType + " " + outgoingPaymentDi.DocNum,
+                                    outgoingPaymentDi.DocDate,
+                                    outgoingPaymentDi.BPLID,
+                                    outgoingPaymentDi.DocCurrency);
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            SAPbouiCOM.Framework.Application.SBO_Application.MessageBox(e.Message);
+                        }
+
+                        try
+                        {
+                            if (isPensionPayer)
+                            {
+                                string incometaxpayertransid = AddJournalEntry(oCompany,
+                                    pensionAccCr,
+                                    "",
+                                    pensionControlAccCr,
+                                    outgoingPaymentDi.CardCode,
+                                    -pensionAmount,
+                                    outgoingPaymentDi.Series,
+                                    outgoingPaymentDi.Invoices.InvoiceType + " " + outgoingPaymentDi.DocNum,
+                                    outgoingPaymentDi.DocDate,
+                                    outgoingPaymentDi.BPLID,
+                                    outgoingPaymentDi.DocCurrency);
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            SAPbouiCOM.Framework.Application.SBO_Application.MessageBox(e.Message);
+                        }
+                    }
+
+                    if (isIncomeTaxPayer && !incomeTaxOnInvoice)
+                    {
+                        if (outgoingPaymentDi.Invoices.SumApplied == 0)
+                        {
+                            continue;
+                        }
+
+                        double pensionAmount2 = outgoingPaymentDi.DocCurrency != "GEL" ? Math.Round(outgoingPaymentDi.Invoices.AppliedFC / 0.784 * 0.02,
+                            6) : Math.Round(outgoingPaymentDi.Invoices.SumApplied / 0.784 * 0.02,
+                            6);
+                        double taxPayerAmount = outgoingPaymentDi.DocCurrency != "GEL" ? (outgoingPaymentDi.Invoices.AppliedFC / 0.784 - pensionAmount2) * 0.2 : (outgoingPaymentDi.Invoices.SumApplied / 0.784 - pensionAmount2) * 0.2;
+                        if (!isPensionPayer)
+                        {
+                            taxPayerAmount = outgoingPaymentDi.DocCurrency != "GEL" ?
+                                outgoingPaymentDi.Invoices.AppliedFC / 0.8 * 0.2 : outgoingPaymentDi.Invoices.SumApplied / 0.8 * 0.2;
+                        }
+
+                        string incometaxpayertransid = AddJournalEntry(oCompany,
+                            incomeTaxAccCr,
+                            "",
+                            incomeControlTaxAccCr,
+                            outgoingPaymentDi.CardCode,
+                            -taxPayerAmount,
+                            outgoingPaymentDi.Series,
+                            outgoingPaymentDi.Invoices.InvoiceType + " " + outgoingPaymentDi.DocNum,
+                            outgoingPaymentDi.DocDate,
+                            outgoingPaymentDi.BPLID,
+                            outgoingPaymentDi.DocCurrency);
+                    }
+                }
+            }
+        }
+
+
+        private string PostvJEFromPayment(ServiceJournalEntryLogic.Models.Settings settings, Payments outgoingPaymentDi, double pensionAmountPaymentOnAccount)
+        {
+            JournalEntries vJE = (JournalEntries)oCompany.GetBusinessObject(BoObjectTypes.oJournalEntries);
+            var comment = "OP " + outgoingPaymentDi.DocNum;
+            vJE.ReferenceDate = outgoingPaymentDi.DocDate;
+            vJE.DueDate = outgoingPaymentDi.DocDate;
+            vJE.TaxDate = outgoingPaymentDi.DocDate;
+            vJE.Memo = comment.Length < 50 ? comment : comment.Substring(0, 49);
+            vJE.Lines.BPLID = outgoingPaymentDi.BPLID;
+            if (outgoingPaymentDi.DocCurrency == "GEL")
+            {
+                vJE.Lines.Debit = pensionAmountPaymentOnAccount;
+            }
+            else
+            {
+                vJE.Lines.FCCurrency = outgoingPaymentDi.DocCurrency;
+                vJE.Lines.FCDebit = pensionAmountPaymentOnAccount;
+            }
+
+            vJE.Lines.ShortName = outgoingPaymentDi.CardCode;
+
+            if (settings.UseDocControllAcc)
+            {
+                vJE.Lines.ControlAccount = outgoingPaymentDi.ControlAccount;
+            }
+
+
+            vJE.Lines.Add();
+            vJE.Lines.BPLID = outgoingPaymentDi.BPLID;
+
+            if (outgoingPaymentDi.DocCurrency == "GEL")
+            {
+                vJE.Lines.Credit = pensionAmountPaymentOnAccount;
+                vJE.Lines.FCCredit = 0;
+            }
+            else
+            {
+                vJE.Lines.FCCurrency = outgoingPaymentDi.DocCurrency;
+                vJE.Lines.FCCredit = pensionAmountPaymentOnAccount;
+            }
+            if (string.IsNullOrWhiteSpace(settings.PensionAccCr))
+            {
+                vJE.Lines.ShortName = settings.PensionControlAccCr;
+            }
+            else
+            {
+                vJE.Lines.AccountCode = settings.PensionAccCr;
+            }
+            vJE.Lines.Add();
+            string transId = "";
+            var ret = vJE.Add();
+            if (ret == 0)
+            {
+                transId = oCompany.GetNewObjectKey();
+            }
+            else
+            {
+                throw new Exception(oCompany.GetLastErrorDescription());
+            }
+            return transId;
+        }
+        private string PostvJEFromPaymentInvoce(ServiceJournalEntryLogic.Models.Settings settings, Documents invoiceDI, double pensionAmountPaymentOnAccount)
+        {
+            JournalEntries vJE = (JournalEntries)oCompany.GetBusinessObject(BoObjectTypes.oJournalEntries);
+            var comment = "IN " + invoiceDI.DocNum;
+            vJE.ReferenceDate = invoiceDI.DocDate;
+            vJE.DueDate = invoiceDI.DocDate;
+            vJE.TaxDate = invoiceDI.DocDate;
+            vJE.Memo = comment.Length < 50 ? comment : comment.Substring(0, 49);
+            vJE.Lines.BPLID = invoiceDI.BPL_IDAssignedToInvoice;
+            if (invoiceDI.DocCurrency == "GEL")
+            {
+                vJE.Lines.Debit = pensionAmountPaymentOnAccount;
+            }
+            else
+            {
+                vJE.Lines.FCCurrency = invoiceDI.DocCurrency;
+                vJE.Lines.FCDebit = pensionAmountPaymentOnAccount;
+            }
+
+            vJE.Lines.ShortName = invoiceDI.CardCode;
+
+            if (settings.UseDocControllAcc)
+            {
+                vJE.Lines.ControlAccount = invoiceDI.ControlAccount;
+            }
+
+
+            vJE.Lines.Add();
+            vJE.Lines.BPLID = invoiceDI.BPL_IDAssignedToInvoice;
+
+            if (invoiceDI.DocCurrency == "GEL")
+            {
+                vJE.Lines.Credit = pensionAmountPaymentOnAccount;
+                vJE.Lines.FCCredit = 0;
+            }
+            else
+            {
+                vJE.Lines.FCCurrency = invoiceDI.DocCurrency;
+                vJE.Lines.FCCredit = pensionAmountPaymentOnAccount;
+            }
+            if (string.IsNullOrWhiteSpace(settings.PensionAccCr))
+            {
+                vJE.Lines.ShortName = settings.PensionControlAccCr;
+            }
+            else
+            {
+                vJE.Lines.AccountCode = settings.PensionAccCr;
+            }
+            vJE.Lines.Add();
+            string transId = "";
+            var ret = vJE.Add();
+            if (ret == 0)
+            {
+                transId = oCompany.GetNewObjectKey();
+            }
+            else
+            {
+                throw new Exception(oCompany.GetLastErrorDescription());
+            }
+            return transId;
         }
     }
 }

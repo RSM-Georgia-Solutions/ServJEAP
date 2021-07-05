@@ -42,9 +42,25 @@ namespace ServiceJournalEntryAp.SystemForms
 
         private void Form_DataAddAfter(ref SAPbouiCOM.BusinessObjectInfo pVal)
         {
+
+            var invObjectString = pVal.ObjectKey;
+            XmlDocument xmlDoc = new XmlDocument();
+            xmlDoc.LoadXml(invObjectString);
+            string invDocEnttry = string.Empty;
+            try
+            {
+                invDocEnttry = xmlDoc.GetElementsByTagName("DocEntry").Item(0).InnerText;
+            }
+            catch (Exception e)
+            {
+                SAPbouiCOM.Framework.Application.SBO_Application.SetStatusBarMessage("Invalid Document Number",
+                    BoMessageTime.bmt_Short, true);
+            }
+            //var id = int.Parse(invDocEnttry, CultureInfo.InvariantCulture);
+
             if (pVal.ActionSuccess)
             {
-                controller.OnPaymentAdd(ref pVal);
+                controller.OnPaymentAdd(invDocEnttry);
             }
         }
 
@@ -60,9 +76,23 @@ namespace ServiceJournalEntryAp.SystemForms
 
         private void Form_DataUpdateAfter(ref BusinessObjectInfo pVal)
         {
+            var invObjectString = pVal.ObjectKey;
+            XmlDocument xmlDoc = new XmlDocument();
+            xmlDoc.LoadXml(invObjectString);
+            string invDocEnttry = string.Empty;
+            try
+            {
+                invDocEnttry = xmlDoc.GetElementsByTagName("DocEntry").Item(0).InnerText;
+            }
+            catch (Exception e)
+            {
+                SAPbouiCOM.Framework.Application.SBO_Application.SetStatusBarMessage("Invalid Document Number",
+                    BoMessageTime.bmt_Short);
+            }
+
             if (pVal.ActionSuccess)
             {
-                controller.OnPaymentUpdate(ref pVal);
+                controller.OnPaymentUpdate(invDocEnttry);
             }
         }
     }
