@@ -937,9 +937,10 @@ namespace ServiceJournalEntryLogic
                     }
                 }
             }
-
+            
             for (int i = 0; i < outgoingPaymentDi.Invoices.Count; i++)
             {
+                
                 outgoingPaymentDi.Invoices.SetCurrentLine(i);
 
                 if (outgoingPaymentDi.Invoices.InvoiceType == BoRcptInvTypes.it_PurchaseInvoice)
@@ -950,81 +951,137 @@ namespace ServiceJournalEntryLogic
                         continue;
                     }
                     invoiceDi.GetByKey(outgoingPaymentDi.Invoices.DocEntry);
+                    double pensionAmount = invoiceDi.DocCurrency != "GEL" ? Math.Round(outgoingPaymentDi.Invoices.AppliedFC / 0.784 * 0.02, 6) : Math.Round(outgoingPaymentDi.Invoices.SumApplied / 0.784 * 0.02, 6);
 
-                    for (int j = 0; j < invoiceDi.Lines.Count; j++)
+                    if (!isIncomeTaxPayer)
                     {
-                        invoiceDi.Lines.SetCurrentLine(j);
-                        recSet.DoQuery2($"SELECT U_PensionLiable FROM OITM WHERE OITM.ItemCode = N'{invoiceDi.Lines.ItemCode}'");
-
-
-                        if (invoiceDi.DocType != BoDocumentTypes.dDocument_Service)
-                        {
-                            bool isPensionLiable = recSet.Fields.Item("U_PensionLiable").Value.ToString() == "01";
-
-                            if (!isPensionLiable)
-                            {
-                                continue;
-                            }
-                        }
-
-                        double pensionAmount = invoiceDi.DocCurrency != "GEL" ? Math.Round(outgoingPaymentDi.Invoices.AppliedFC / 0.784 * 0.02, 6) : Math.Round(outgoingPaymentDi.Invoices.SumApplied / 0.784 * 0.02, 6);
-
-                        if (!isIncomeTaxPayer)
-                        {
-                            pensionAmount = invoiceDi.DocCurrency != "GEL" ? Math.Round(outgoingPaymentDi.Invoices.AppliedFC / 0.98 * 0.02, 6) : Math.Round(outgoingPaymentDi.Invoices.SumApplied / 0.98 * 0.02,
-                                6);
-                        }
-
-                        try
-                        {
-                            if (isPensionPayer)
-                            {
-                                string incometaxpayertransidcomp = AddJournalEntry(oCompany,
-                                    pensionAccCr,
-                                    pensionAccDr,
-                                    pensionControlAccCr,
-                                    pensionControlAccDr,
-                                    pensionAmount,
-                                    invoiceDi.Series,
-                                    "IN " + invoiceDi.DocNum,
-                                    invoiceDi.DocDate,
-                                    invoiceDi.BPL_IDAssignedToInvoice,
-                                    invoiceDi.DocCurrency);
-                            }
-                        }
-                        catch (Exception e)
-                        {
-                            SAPbouiCOM.Framework.Application.SBO_Application.MessageBox(e.Message);
-                        }
-
-                        try
-                        {
-                            if (isPensionPayer)
-                            {
-                                //string incometaxpayertransid = DocumentHelper.AddJournalEntry(oCompany,
-                                //    pensionAccCr,
-                                //    "",
-                                //    pensionControlAccCr,
-                                //    invoiceDi.CardCode,
-                                //    pensionAmount,
-                                //    invoiceDi.Series,
-                                //    "IN " + invoiceDi.DocNum,
-                                //    invoiceDi.DocDate,
-                                //    invoiceDi.BPL_IDAssignedToInvoice,
-                                //    invoiceDi.DocCurrency);
-
-
-                                string incometaxpayertransid = PostvJEFromPaymentInvoce(settings, invoiceDi, pensionAmount);
-
-                            }
-                        }
-                        catch (Exception e)
-                        {
-                            SAPbouiCOM.Framework.Application.SBO_Application.MessageBox(e.Message);
-                        }
-
-
+                        pensionAmount = invoiceDi.DocCurrency != "GEL" ? Math.Round(outgoingPaymentDi.Invoices.AppliedFC / 0.98 * 0.02, 6) : Math.Round(outgoingPaymentDi.Invoices.SumApplied / 0.98 * 0.02,
+                            6);
                     }
+
+                    try
+                    {
+                        if (isPensionPayer)
+                        {
+                            string incometaxpayertransidcomp = AddJournalEntry(oCompany,
+                                pensionAccCr,
+                                pensionAccDr,
+                                pensionControlAccCr,
+                                pensionControlAccDr,
+                                pensionAmount,
+                                invoiceDi.Series,
+                                "IN " + invoiceDi.DocNum,
+                                invoiceDi.DocDate,
+                                invoiceDi.BPL_IDAssignedToInvoice,
+                                invoiceDi.DocCurrency);
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        SAPbouiCOM.Framework.Application.SBO_Application.MessageBox(e.Message);
+                    }
+
+                    try
+                    {
+                        if (isPensionPayer)
+                        {
+                            //string incometaxpayertransid = DocumentHelper.AddJournalEntry(oCompany,
+                            //    pensionAccCr,
+                            //    "",
+                            //    pensionControlAccCr,
+                            //    invoiceDi.CardCode,
+                            //    pensionAmount,
+                            //    invoiceDi.Series,
+                            //    "IN " + invoiceDi.DocNum,
+                            //    invoiceDi.DocDate,
+                            //    invoiceDi.BPL_IDAssignedToInvoice,
+                            //    invoiceDi.DocCurrency);
+
+
+                            string incometaxpayertransid = PostvJEFromPaymentInvoce(settings, invoiceDi, pensionAmount);
+
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        SAPbouiCOM.Framework.Application.SBO_Application.MessageBox(e.Message);
+                    }
+
+                    //legacy code
+                    //for (int j = 0; j < invoiceDi.Lines.Count; j++)
+                    //{
+                    //    invoiceDi.Lines.SetCurrentLine(j);
+                    //    recSet.DoQuery2($"SELECT U_PensionLiable FROM OITM WHERE OITM.ItemCode = N'{invoiceDi.Lines.ItemCode}'");
+
+
+                    //    if (invoiceDi.DocType != BoDocumentTypes.dDocument_Service)
+                    //    {
+                    //        bool isPensionLiable = recSet.Fields.Item("U_PensionLiable").Value.ToString() == "01";
+
+                    //        if (!isPensionLiable)
+                    //        {
+                    //            continue;
+                    //        }
+                    //    }
+
+                    //    double pensionAmount = invoiceDi.DocCurrency != "GEL" ? Math.Round(outgoingPaymentDi.Invoices.AppliedFC / 0.784 * 0.02, 6) : Math.Round(outgoingPaymentDi.Invoices.SumApplied / 0.784 * 0.02, 6);
+
+                    //    if (!isIncomeTaxPayer)
+                    //    {
+                    //        pensionAmount = invoiceDi.DocCurrency != "GEL" ? Math.Round(outgoingPaymentDi.Invoices.AppliedFC / 0.98 * 0.02, 6) : Math.Round(outgoingPaymentDi.Invoices.SumApplied / 0.98 * 0.02,
+                    //            6);
+                    //    }
+
+                    //    try
+                    //    {
+                    //        if (isPensionPayer)
+                    //        {
+                    //            string incometaxpayertransidcomp = AddJournalEntry(oCompany,
+                    //                pensionAccCr,
+                    //                pensionAccDr,
+                    //                pensionControlAccCr,
+                    //                pensionControlAccDr,
+                    //                pensionAmount,
+                    //                invoiceDi.Series,
+                    //                "IN " + invoiceDi.DocNum,
+                    //                invoiceDi.DocDate,
+                    //                invoiceDi.BPL_IDAssignedToInvoice,
+                    //                invoiceDi.DocCurrency);
+                    //        }
+                    //    }
+                    //    catch (Exception e)
+                    //    {
+                    //        SAPbouiCOM.Framework.Application.SBO_Application.MessageBox(e.Message);
+                    //    }
+
+                    //    try
+                    //    {
+                    //        if (isPensionPayer)
+                    //        {
+                    //            //string incometaxpayertransid = DocumentHelper.AddJournalEntry(oCompany,
+                    //            //    pensionAccCr,
+                    //            //    "",
+                    //            //    pensionControlAccCr,
+                    //            //    invoiceDi.CardCode,
+                    //            //    pensionAmount,
+                    //            //    invoiceDi.Series,
+                    //            //    "IN " + invoiceDi.DocNum,
+                    //            //    invoiceDi.DocDate,
+                    //            //    invoiceDi.BPL_IDAssignedToInvoice,
+                    //            //    invoiceDi.DocCurrency);
+
+
+                    //            string incometaxpayertransid = PostvJEFromPaymentInvoce(settings, invoiceDi, pensionAmount);
+
+                    //        }
+                    //    }
+                    //    catch (Exception e)
+                    //    {
+                    //        SAPbouiCOM.Framework.Application.SBO_Application.MessageBox(e.Message);
+                    //    }
+
+
+                    //}
 
                 }
 
