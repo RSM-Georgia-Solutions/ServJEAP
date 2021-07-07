@@ -246,7 +246,7 @@ namespace ServiceJournalEntryLogic
                         //    incomeTaxAccDr, incomeTaxControlAccCr, invoiceDi.CardCode, -incomeTaxAmount,
                         //    invoiceDi.Series, invoiceDi.Comments, invoiceDi.DocDate,
                         //    invoiceDi.BPL_IDAssignedToInvoice, invoiceDi.DocCurrency);
-                        string incomeTaxPayerTransId = PostIncomeTaxvJEFromDocument(settings, invoiceDi, incomeTaxAmount);
+                        string incomeTaxPayerTransId = PostIncomeTaxvJEFromDocument(settings, invoiceDi, -incomeTaxAmount);
                         results.Add(new Result
                         {
                             IsSuccessCode = true,
@@ -383,7 +383,7 @@ namespace ServiceJournalEntryLogic
                         //    invoiceDi.Series, invoiceDi.Comments, invoiceDi.DocDate,
                         //    invoiceDi.BPL_IDAssignedToInvoice, invoiceDi.DocCurrency);
 
-                        string incomeTaxPayerTransId = PostIncomeTaxvJEFromDocument(settings, invoiceDi, incomeTaxAmount);
+                        string incomeTaxPayerTransId = PostIncomeTaxvJEFromDocument(settings, invoiceDi, -incomeTaxAmount);
                         results.Add(new Result
                         {
                             IsSuccessCode = true,
@@ -967,11 +967,11 @@ namespace ServiceJournalEntryLogic
                             }
                         }
 
-                        double pensionAmount = outgoingPaymentDi.DocCurrency != "GEL" ? Math.Round(outgoingPaymentDi.Invoices.AppliedFC / 0.784 * 0.02, 6) : Math.Round(outgoingPaymentDi.Invoices.SumApplied / 0.784 * 0.02, 6);
+                        double pensionAmount = invoiceDi.DocCurrency != "GEL" ? Math.Round(outgoingPaymentDi.Invoices.AppliedFC / 0.784 * 0.02, 6) : Math.Round(outgoingPaymentDi.Invoices.SumApplied / 0.784 * 0.02, 6);
 
                         if (!isIncomeTaxPayer)
                         {
-                            pensionAmount = outgoingPaymentDi.DocCurrency != "GEL" ? Math.Round(outgoingPaymentDi.Invoices.AppliedFC / 0.98 * 0.02, 6) : Math.Round(outgoingPaymentDi.Invoices.SumApplied / 0.98 * 0.02,
+                            pensionAmount = invoiceDi.DocCurrency != "GEL" ? Math.Round(outgoingPaymentDi.Invoices.AppliedFC / 0.98 * 0.02, 6) : Math.Round(outgoingPaymentDi.Invoices.SumApplied / 0.98 * 0.02,
                                 6);
                         }
 

@@ -178,7 +178,7 @@ namespace ServiceJournalEntryAp.Controllers
 
                 var postingDate = DateTime.ParseExact(((EditText)oMatrix.GetCellSpecific("10000003", i)).Value, "yyyyMMdd", CultureInfo.InvariantCulture);
 
-                if (!settings.IncomeTaxOnInvoice && incomeTaxPayer && isPaymentOnAccount == "Y")
+                if (!settings.IncomeTaxOnInvoice && incomeTaxPayer)
                 {
                     var incomeTaxPayerPercent = (double)businessPartner.UserFields.Fields.Item("U_IncomeTaxPayerPercent").Value;
                     var pensionPayerPercent = (double)businessPartner.UserFields.Fields.Item("U_PensionPayerPercent").Value;
