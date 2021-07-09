@@ -19,7 +19,16 @@ namespace ServiceJournalEntryLogic
             oCompany = company;
             this.settingsProvider = settingsProvider;
         }
+        public double GetCurrRate(string currCode, DateTime date)
+        {
+            if (currCode == oCompany.GetCompanyService().GetAdminInfo().LocalCurrency)
+                return 1;
+            SBObob vObj = (SBObob)oCompany.GetBusinessObject(BoObjectTypes.BoBridge);
+            var rs = vObj.GetCurrencyRate(currCode, date);
+            double result = (double)rs.Fields.Item(0).Value;
+            return result;
 
+        }
         public string AddJournalEntry(Company _comp, string creditCode, string debitCode, string creditControlCode, string debitControlCode, double amount, int series, string comment, DateTime DocDate, int BPLID = 235, string currency = "GEL")
         {
             SAPbobsCOM.JournalEntries vJE =
@@ -481,6 +490,84 @@ namespace ServiceJournalEntryLogic
             return incomeTaxPayerTransId;
         }
 
+
+        private string PostIncomeTaxvJEFromPaymentDocument(Settings settings, Documents invoiceDi, double incomeTaxAmount, Payments paymentDi)
+        {
+            string incomeTaxPayerTransId;
+            JournalEntries vJE = (JournalEntries)oCompany.GetBusinessObject(BoObjectTypes.oJournalEntries);
+            vJE.ReferenceDate = invoiceDi.DocDate;
+            vJE.DueDate = invoiceDi.DocDate;
+            vJE.TaxDate = invoiceDi.DocDate;
+            vJE.Memo = invoiceDi.Comments.PadLeft(50).Substring(0, 49);
+
+            #region Line 1
+            vJE.Lines.BPLID = invoiceDi.BPL_IDAssignedToInvoice;
+            if (paymentDi.DocCurrency == "GEL")
+            {
+                vJE.Lines.Debit = incomeTaxAmount;
+            }
+            else
+            {
+                vJE.Lines.FCCurrency = paymentDi.DocCurrency;
+                vJE.Lines.FCDebit = incomeTaxAmount;
+            }
+
+            if (string.IsNullOrWhiteSpace(settings.IncomeTaxAccDr))
+            {
+                vJE.Lines.ShortName = invoiceDi.CardCode;
+
+                if (settings.UseDocControllAcc)
+                {
+                    vJE.Lines.ControlAccount = invoiceDi.ControlAccount;
+                }
+            }
+            else
+            {
+                vJE.Lines.AccountCode = settings.IncomeTaxAccDr;
+            }
+
+            vJE.Lines.Add();
+            #endregion
+
+
+            #region Line 2
+            vJE.Lines.BPLID = invoiceDi.BPL_IDAssignedToInvoice;
+
+            if (paymentDi.DocCurrency == "GEL")
+            {
+                vJE.Lines.Credit = incomeTaxAmount;
+                vJE.Lines.FCCredit = 0;
+            }
+            else
+            {
+                vJE.Lines.FCCurrency = paymentDi.DocCurrency;
+                vJE.Lines.FCCredit = incomeTaxAmount;
+            }
+
+            if (string.IsNullOrWhiteSpace(settings.IncomeTaxAccCr))
+            {
+                vJE.Lines.ShortName = settings.IncomeControlTaxAccCr;
+            }
+            else
+            {
+                vJE.Lines.AccountCode = settings.IncomeTaxAccCr;
+            }
+
+            vJE.Lines.Add();
+            #endregion
+
+            var ret = vJE.Add();
+            if (ret == 0)
+            {
+                incomeTaxPayerTransId = oCompany.GetNewObjectKey();
+            }
+            else
+            {
+                throw new Exception(oCompany.GetLastErrorDescription());
+            }
+
+            return incomeTaxPayerTransId;
+        }
 
         public string PostPensionvJEFromInvoice(Settings settings, Documents invoiceDI, double pensionAmountPaymentOnAccount)
         {
@@ -959,6 +1046,10 @@ namespace ServiceJournalEntryLogic
                         pensionAmount = invoiceDi.DocCurrency != "GEL" ? Math.Round(outgoingPaymentDi.Invoices.AppliedFC / 0.98 * 0.02, 6) : Math.Round(outgoingPaymentDi.Invoices.SumApplied / 0.98 * 0.02,
                             6);
                     }
+                    if (outgoingPaymentDi.DocCurrency != invoiceDi.DocCurrency && outgoingPaymentDi.DocCurrency == "GEL")
+                    {
+                        pensionAmount = pensionAmount * GetCurrRate(invoiceDi.DocCurrency, outgoingPaymentDi.DocDate); 
+                    }
 
                     try
                     {
@@ -974,7 +1065,7 @@ namespace ServiceJournalEntryLogic
                                 "IN " + invoiceDi.DocNum,
                                 invoiceDi.DocDate,
                                 invoiceDi.BPL_IDAssignedToInvoice,
-                                invoiceDi.DocCurrency);
+                                outgoingPaymentDi.DocCurrency);
                         }
                     }
                     catch (Exception e)
@@ -999,7 +1090,7 @@ namespace ServiceJournalEntryLogic
                             //    invoiceDi.DocCurrency);
 
 
-                            string incometaxpayertransid = PostvJEFromPaymentInvoce(settings, invoiceDi, pensionAmount);
+                            string incometaxpayertransid = PostvJEFromPaymentInvoce(settings, invoiceDi, pensionAmount, outgoingPaymentDi);
 
                         }
                     }
@@ -1094,6 +1185,7 @@ namespace ServiceJournalEntryLogic
                         pensionAmount = outgoingPaymentDi.DocCurrency != "GEL" ? Math.Round(outgoingPaymentDi.Invoices.AppliedFC / 0.98 * 0.02, 6) : Math.Round(outgoingPaymentDi.Invoices.SumApplied / 0.98 * 0.02,
                             6);
                     }
+
                     try
                     {
                         if (isPensionPayer)
@@ -1144,11 +1236,24 @@ namespace ServiceJournalEntryLogic
                     {
                         continue;
                     }
-                    double pensionAmount2 = outgoingPaymentDi.DocCurrency != "GEL" ? Math.Round(outgoingPaymentDi.Invoices.AppliedFC / 0.784 * 0.02, 6) : Math.Round(outgoingPaymentDi.Invoices.SumApplied / 0.784 * 0.02, 6);
-                    double taxPayerAmount = outgoingPaymentDi.DocCurrency != "GEL" ? (outgoingPaymentDi.Invoices.AppliedFC / 0.784 - pensionAmount2) * 0.2 : (outgoingPaymentDi.Invoices.SumApplied / 0.784 - pensionAmount2) * 0.2;
+                    Recordset recSet1 = (Recordset)oCompany.GetBusinessObject(BoObjectTypes.BoRecordset);
+                    recSet1.DoQuery($"select DocRate from  VPM2 where DocNum = {outgoingPaymentDi.DocEntry} and InvoiceId = {i}");
+                    var rate = (double)recSet1.Fields.Item(0).Value;
+                    //double pensionAmount2 = outgoingPaymentDi.DocCurrency != "GEL" ? Math.Round(outgoingPaymentDi.Invoices.AppliedFC / 0.784 * 0.02, 6) : Math.Round(outgoingPaymentDi.Invoices.SumApplied / 0.784 * 0.02, 6);
+                    //double taxPayerAmount = outgoingPaymentDi.DocCurrency != "GEL" ? (outgoingPaymentDi.Invoices.AppliedFC / 0.784 - pensionAmount2) * 0.2 : (outgoingPaymentDi.Invoices.SumApplied / 0.784 - pensionAmount2) * 0.2;
+                    //if (!isPensionPayer)
+                    //{
+                    //    taxPayerAmount = outgoingPaymentDi.DocCurrency != "GEL" ? outgoingPaymentDi.Invoices.AppliedFC / 0.8 * 0.2 : outgoingPaymentDi.Invoices.SumApplied / 0.8 * 0.2;
+                    //}
+                    double pensionAmount2 = rate != 0 ? Math.Round(outgoingPaymentDi.Invoices.AppliedFC / 0.784 * 0.02, 6) : Math.Round(outgoingPaymentDi.Invoices.SumApplied / 0.784 * 0.02, 6);
+                    double taxPayerAmount = rate != 0 ? (outgoingPaymentDi.Invoices.AppliedFC / 0.784 - pensionAmount2) * 0.2 : (outgoingPaymentDi.Invoices.SumApplied / 0.784 - pensionAmount2) * 0.2;
                     if (!isPensionPayer)
                     {
-                        taxPayerAmount = outgoingPaymentDi.DocCurrency != "GEL" ? outgoingPaymentDi.Invoices.AppliedFC / 0.8 * 0.2 : outgoingPaymentDi.Invoices.SumApplied / 0.8 * 0.2;
+                        taxPayerAmount = rate != 0 ? outgoingPaymentDi.Invoices.AppliedFC / 0.8 * 0.2 : outgoingPaymentDi.Invoices.SumApplied / 0.8 * 0.2;
+                    }
+                    if (rate!=0)
+                    {
+                        taxPayerAmount = taxPayerAmount  * rate;
                     }
                     if (outgoingPaymentDi.Invoices.InvoiceType == BoRcptInvTypes.it_PurchaseInvoice)
                     {
@@ -1158,7 +1263,7 @@ namespace ServiceJournalEntryLogic
                             continue;
                         }
                         invoiceDi.GetByKey(outgoingPaymentDi.Invoices.DocEntry);
-                        string incometaxpayertransid = PostIncomeTaxvJEFromDocument(settings, invoiceDi, taxPayerAmount);
+                        string incometaxpayertransid = PostIncomeTaxvJEFromPaymentDocument (settings, invoiceDi, taxPayerAmount, outgoingPaymentDi);
                     }
                     else
                     {
@@ -1436,6 +1541,12 @@ namespace ServiceJournalEntryLogic
                                 6) : Math.Round(outgoingPaymentDi.Invoices.SumApplied / 0.98 * 0.02,
                                 6);
                         }
+                        if (outgoingPaymentDi.DocCurrency != invoiceDi.DocCurrency && outgoingPaymentDi.DocCurrency == "GEL")
+                        {
+                            pensionAmount = pensionAmount * GetCurrRate(invoiceDi.DocCurrency, outgoingPaymentDi.DocDate);
+                        }
+
+
 
                         try
                         {
@@ -1451,7 +1562,7 @@ namespace ServiceJournalEntryLogic
                                     "IN " + invoiceDi.DocNum,
                                     invoiceDi.DocDate,
                                     invoiceDi.BPL_IDAssignedToInvoice,
-                                    invoiceDi.DocCurrency);
+                                    outgoingPaymentDi.DocCurrency);
                             }
                         }
                         catch (Exception e)
@@ -1474,7 +1585,7 @@ namespace ServiceJournalEntryLogic
                                 //    invoiceDi.DocDate,
                                 //    invoiceDi.BPL_IDAssignedToInvoice,
                                 //    invoiceDi.DocCurrency);
-                                string incometaxpayertransid = PostvJEFromPaymentInvoce(settings, invoiceDi, -pensionAmount);
+                                string incometaxpayertransid = PostvJEFromPaymentInvoce(settings, invoiceDi, -pensionAmount, outgoingPaymentDi);
                             }
                         }
                         catch (Exception e)
@@ -1549,15 +1660,37 @@ namespace ServiceJournalEntryLogic
                         {
                             continue;
                         }
+                        Recordset recSet1 = (Recordset)oCompany.GetBusinessObject(BoObjectTypes.BoRecordset);
+                        recSet1.DoQuery($"select DocRate from  VPM2 where DocNum = {outgoingPaymentDi.DocEntry} and InvoiceId = {i}");
+                        var rate = (double)recSet1.Fields.Item(0).Value;
+                        //double pensionAmount2 = outgoingPaymentDi.DocCurrency != "GEL" ? Math.Round(outgoingPaymentDi.Invoices.AppliedFC / 0.784 * 0.02,
+                        //    6) : Math.Round(outgoingPaymentDi.Invoices.SumApplied / 0.784 * 0.02,
+                        //    6);
 
-                        double pensionAmount2 = outgoingPaymentDi.DocCurrency != "GEL" ? Math.Round(outgoingPaymentDi.Invoices.AppliedFC / 0.784 * 0.02,
+
+
+                        //double taxPayerAmount = outgoingPaymentDi.DocCurrency != "GEL" ? (outgoingPaymentDi.Invoices.AppliedFC / 0.784 - pensionAmount2) * 0.2 : (outgoingPaymentDi.Invoices.SumApplied / 0.784 - pensionAmount2) * 0.2;
+                        //if (!isPensionPayer)
+                        //{
+                        //    taxPayerAmount = outgoingPaymentDi.DocCurrency != "GEL" ?
+                        //        outgoingPaymentDi.Invoices.AppliedFC / 0.8 * 0.2 : outgoingPaymentDi.Invoices.SumApplied / 0.8 * 0.2;
+                        //}
+                        double pensionAmount2 = rate != 0 ? Math.Round(outgoingPaymentDi.Invoices.AppliedFC / 0.784 * 0.02,
                             6) : Math.Round(outgoingPaymentDi.Invoices.SumApplied / 0.784 * 0.02,
                             6);
-                        double taxPayerAmount = outgoingPaymentDi.DocCurrency != "GEL" ? (outgoingPaymentDi.Invoices.AppliedFC / 0.784 - pensionAmount2) * 0.2 : (outgoingPaymentDi.Invoices.SumApplied / 0.784 - pensionAmount2) * 0.2;
+
+
+
+                        double taxPayerAmount = rate != 0 ? (outgoingPaymentDi.Invoices.AppliedFC / 0.784 - pensionAmount2) * 0.2 : (outgoingPaymentDi.Invoices.SumApplied / 0.784 - pensionAmount2) * 0.2;
                         if (!isPensionPayer)
                         {
-                            taxPayerAmount = outgoingPaymentDi.DocCurrency != "GEL" ?
+                            taxPayerAmount = rate != 0 ?
                                 outgoingPaymentDi.Invoices.AppliedFC / 0.8 * 0.2 : outgoingPaymentDi.Invoices.SumApplied / 0.8 * 0.2;
+                        }
+
+                        if (rate != 0)
+                        {
+                            taxPayerAmount = taxPayerAmount * rate;
                         }
 
                         string incometaxpayertransid = AddJournalEntry(oCompany,
@@ -1638,7 +1771,7 @@ namespace ServiceJournalEntryLogic
             }
             return transId;
         }
-        private string PostvJEFromPaymentInvoce(ServiceJournalEntryLogic.Models.Settings settings, Documents invoiceDI, double pensionAmountPaymentOnAccount)
+        private string PostvJEFromPaymentInvoce(ServiceJournalEntryLogic.Models.Settings settings, Documents invoiceDI, double pensionAmountPaymentOnAccount, Payments paymentDi)
         {
             JournalEntries vJE = (JournalEntries)oCompany.GetBusinessObject(BoObjectTypes.oJournalEntries);
             var comment = "IN " + invoiceDI.DocNum;
@@ -1647,13 +1780,13 @@ namespace ServiceJournalEntryLogic
             vJE.TaxDate = invoiceDI.DocDate;
             vJE.Memo = comment.Length < 50 ? comment : comment.Substring(0, 49);
             vJE.Lines.BPLID = invoiceDI.BPL_IDAssignedToInvoice;
-            if (invoiceDI.DocCurrency == "GEL")
+            if (paymentDi.DocCurrency == "GEL")
             {
                 vJE.Lines.Debit = pensionAmountPaymentOnAccount;
             }
             else
             {
-                vJE.Lines.FCCurrency = invoiceDI.DocCurrency;
+                vJE.Lines.FCCurrency = paymentDi.DocCurrency;
                 vJE.Lines.FCDebit = pensionAmountPaymentOnAccount;
             }
 
@@ -1668,14 +1801,14 @@ namespace ServiceJournalEntryLogic
             vJE.Lines.Add();
             vJE.Lines.BPLID = invoiceDI.BPL_IDAssignedToInvoice;
 
-            if (invoiceDI.DocCurrency == "GEL")
+            if (paymentDi.DocCurrency == "GEL")
             {
                 vJE.Lines.Credit = pensionAmountPaymentOnAccount;
                 vJE.Lines.FCCredit = 0;
             }
             else
             {
-                vJE.Lines.FCCurrency = invoiceDI.DocCurrency;
+                vJE.Lines.FCCurrency = paymentDi.DocCurrency;
                 vJE.Lines.FCCredit = pensionAmountPaymentOnAccount;
             }
             if (string.IsNullOrWhiteSpace(settings.PensionAccCr))
