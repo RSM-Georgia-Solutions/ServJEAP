@@ -68,6 +68,7 @@
     <Compile Include="DocumentHelper.cs" />
     <Compile Include="IDocumentHelper.cs" />
     <Compile Include="Models\BspHisotry.cs" />
+    <Compile Include="Models\PaymentResult.cs" />
     <Compile Include="Models\Settings.cs" />
     <Compile Include="Models\UdfFIelds.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

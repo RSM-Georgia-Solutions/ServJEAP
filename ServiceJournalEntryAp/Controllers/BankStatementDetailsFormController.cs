@@ -135,8 +135,9 @@ namespace ServiceJournalEntryAp.Controllers
                     hasNoJounralEntryCount += 2;
                     continue;
                 }
-
-                var parsed = double.TryParse(amountCurrencyString.Split(' ')[0], out double amount);
+                var rame = amountCurrencyString.Split(' ')[0];
+                double amount;
+                var parsed = double.TryParse(amountCurrencyString.Split(' ')[0], out amount);
                 if (!parsed)//გასარკვევია ეს საკითხი
                 {
                     SAPbouiCOM.Framework.Application.SBO_Application.SetStatusBarMessage("Invalid Amount : \"Outgoing Amt - Payment Currency\"",
@@ -224,9 +225,17 @@ namespace ServiceJournalEntryAp.Controllers
 
                 if (isPaymentOnAccount == "N" && settings.UseDocControllAcc)
                 {
-                    DocumentHelper.OnPaymentAdd(paymentId);
-                    notPayer += 2;
+                    DocumentHelper.OnPaymentAdd(paymentId, false);
+                    successCount += 2;
                     totalCount += 2;
+                    //BspHistoryProvider.Save(new ServiceJournalEntryLogic.Models.BspHisotry()
+                    //{
+                    //    BSP_ACCOUNT = BankAccountEditText.Value,
+                    //    BSP_ID_NUMBER = idNumber,
+                    //    BSP_SEQUENCE = sequence,
+                    //    TRANS_ID_EMPLOYEE = "",
+                    //    TRANS_ID_COMPANY = ""
+                    //});
                     continue;
                 }
 
