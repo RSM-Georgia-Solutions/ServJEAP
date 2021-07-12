@@ -1046,7 +1046,8 @@ namespace ServiceJournalEntryLogic
                         pensionAmount = invoiceDi.DocCurrency != "GEL" ? Math.Round(outgoingPaymentDi.Invoices.AppliedFC / 0.98 * 0.02, 6) : Math.Round(outgoingPaymentDi.Invoices.SumApplied / 0.98 * 0.02,
                             6);
                     }
-                    if (outgoingPaymentDi.DocCurrency != invoiceDi.DocCurrency && outgoingPaymentDi.DocCurrency == "GEL")
+                   
+                    if (outgoingPaymentDi.DocCurrency != invoiceDi.DocCurrency && outgoingPaymentDi.DocCurrency == oCompany.GetCompanyService().GetAdminInfo().LocalCurrency)
                     {
                         pensionAmount = pensionAmount * GetCurrRate(invoiceDi.DocCurrency, outgoingPaymentDi.DocDate); 
                     }
@@ -1541,7 +1542,7 @@ namespace ServiceJournalEntryLogic
                                 6) : Math.Round(outgoingPaymentDi.Invoices.SumApplied / 0.98 * 0.02,
                                 6);
                         }
-                        if (outgoingPaymentDi.DocCurrency != invoiceDi.DocCurrency && outgoingPaymentDi.DocCurrency == "GEL")
+                        if (outgoingPaymentDi.DocCurrency != invoiceDi.DocCurrency && outgoingPaymentDi.DocCurrency == oCompany.GetCompanyService().GetAdminInfo().LocalCurrency)
                         {
                             pensionAmount = pensionAmount * GetCurrRate(invoiceDi.DocCurrency, outgoingPaymentDi.DocDate);
                         }
