@@ -495,9 +495,9 @@ namespace ServiceJournalEntryLogic
         {
             string incomeTaxPayerTransId;
             JournalEntries vJE = (JournalEntries)oCompany.GetBusinessObject(BoObjectTypes.oJournalEntries);
-            vJE.ReferenceDate = invoiceDi.DocDate;
-            vJE.DueDate = invoiceDi.DocDate;
-            vJE.TaxDate = invoiceDi.DocDate;
+            vJE.ReferenceDate = paymentDi.DocDate;
+            vJE.DueDate = paymentDi.DocDate;
+            vJE.TaxDate = paymentDi.DocDate;
             vJE.Memo = invoiceDi.Comments.PadLeft(50).Substring(0, 49);
 
             #region Line 1
@@ -846,7 +846,7 @@ namespace ServiceJournalEntryLogic
             return results;
         }
 
-        public void OnPaymentAdd(string invDocEnttry, bool postIncomeTax)
+        public void OnPaymentAdd(string invDocEnttry)
         {
             var settings = settingsProvider.Get();
             //var invObjectString = pVal.ObjectKey;
@@ -885,6 +885,7 @@ namespace ServiceJournalEntryLogic
             var x = outgoingPaymentDi.GetAsXML();
             XmlDocument xmlDoc2 = new XmlDocument();
             xmlDoc2.LoadXml(x);
+
             string paymentOnAcc = xmlDoc2.GetElementsByTagName("NoDocSum").Item(0).InnerText;
             string paymentOnAccFc = xmlDoc2.GetElementsByTagName("NoDocSumFC").Item(0).InnerText;
 
@@ -1231,7 +1232,7 @@ namespace ServiceJournalEntryLogic
                         SAPbouiCOM.Framework.Application.SBO_Application.MessageBox(e.Message);
                     }
                 }
-                if (isIncomeTaxPayer && !incomeTaxOnInvoice && postIncomeTax)
+                if (isIncomeTaxPayer && !incomeTaxOnInvoice)
                 {
                     if (outgoingPaymentDi.Invoices.SumApplied == 0)
                     {
@@ -1693,8 +1694,19 @@ namespace ServiceJournalEntryLogic
                         {
                             taxPayerAmount = taxPayerAmount * rate;
                         }
-
-                        string incometaxpayertransid = AddJournalEntry(oCompany,
+                        if (outgoingPaymentDi.Invoices.InvoiceType == BoRcptInvTypes.it_PurchaseInvoice)
+                        {
+                            Documents invoiceDi = (Documents)oCompany.GetBusinessObject(BoObjectTypes.oPurchaseInvoices);
+                            if (outgoingPaymentDi.Invoices.DocEntry == 0)
+                            {
+                                continue;
+                            }
+                            invoiceDi.GetByKey(outgoingPaymentDi.Invoices.DocEntry);
+                            string incometaxpayertransid = PostIncomeTaxvJEFromPaymentDocument(settings, invoiceDi, -taxPayerAmount, outgoingPaymentDi);
+                        }
+                        else
+                        {
+                            string incometaxpayertransid = AddJournalEntry(oCompany,
                             incomeTaxAccCr,
                             "",
                             incomeControlTaxAccCr,
@@ -1705,6 +1717,10 @@ namespace ServiceJournalEntryLogic
                             outgoingPaymentDi.DocDate,
                             outgoingPaymentDi.BPLID,
                             outgoingPaymentDi.DocCurrency);
+
+                        }
+
+                        
                     }
                 }
             }
@@ -1776,9 +1792,9 @@ namespace ServiceJournalEntryLogic
         {
             JournalEntries vJE = (JournalEntries)oCompany.GetBusinessObject(BoObjectTypes.oJournalEntries);
             var comment = "IN " + invoiceDI.DocNum;
-            vJE.ReferenceDate = invoiceDI.DocDate;
-            vJE.DueDate = invoiceDI.DocDate;
-            vJE.TaxDate = invoiceDI.DocDate;
+            vJE.ReferenceDate = paymentDi.DocDate;
+            vJE.DueDate = paymentDi.DocDate;
+            vJE.TaxDate = paymentDi.DocDate;
             vJE.Memo = comment.Length < 50 ? comment : comment.Substring(0, 49);
             vJE.Lines.BPLID = invoiceDI.BPL_IDAssignedToInvoice;
             if (paymentDi.DocCurrency == "GEL")

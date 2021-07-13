@@ -71,8 +71,8 @@ namespace ServiceJournalEntryAp.Controllers
                 string cardCode = OBNKDataSource.GetValue("CardCode", i - 1);
                 string sequence = OBNKDataSource.GetValue("Sequence", i - 1);
                 string order = OBNKDataSource.GetValue("VisOrder", i - 1);
-                
-             
+
+
 
                 if (BspHistoryProvider.Exists(idNumber, sequence, BankAccountEditText.Value))
                 {
@@ -178,98 +178,102 @@ namespace ServiceJournalEntryAp.Controllers
                 var curryencyString = amountCurrencyString.Split(' ')[1];
 
                 var postingDate = DateTime.ParseExact(((EditText)oMatrix.GetCellSpecific("10000003", i)).Value, "yyyyMMdd", CultureInfo.InvariantCulture);
-
-                if (!settings.IncomeTaxOnInvoice && incomeTaxPayer)
-                {
-                    var incomeTaxPayerPercent = (double)businessPartner.UserFields.Fields.Item("U_IncomeTaxPayerPercent").Value;
-                    var pensionPayerPercent = (double)businessPartner.UserFields.Fields.Item("U_PensionPayerPercent").Value;
-                    double incomeTaxAmount;
-
-                    if (isPensionPayer)
-                    {
-                        double pensionAmount = Math.Round(amount / 0.784 * pensionPayerPercent / 100,
-                            6);
-                        if (!incomeTaxPayer)
-                        {
-                            pensionAmount = Math.Round(amount / 0.98 * pensionPayerPercent / 100,
-                                6);
-                        }
-                        incomeTaxAmount = Math.Round((amount / 0.784 - pensionAmount) * incomeTaxPayerPercent / 100, 6);
-
-                    }
-                    else
-                    {
-                        incomeTaxAmount = Math.Round(amount / 0.8 * incomeTaxPayerPercent / 100, 6);
-                    }
-
-                    if (incomeTaxPayer)
-                    {
-                        string incomeTaxPayerTransId = DocumentHelper.AddJournalEntry(oCompany, settings.IncomeTaxAccCr,
-                            settings.IncomeTaxAccDr, settings.IncomeControlTaxAccCr, cardCode, incomeTaxAmount,
-                            series, "BS " + BSPNumberEditText.Value + " " + order, postingDate,
-                            bplId, curryencyString);
-                    }
-
-                }
-
-
-
-                //საპენსიოს დაპოსტვა
-                if (!isPensionPayer)
-                {
-                    notPayer += 2;
-                    totalCount += 2;
-                    continue;
-                }
-                
-
                 if (isPaymentOnAccount == "N" && settings.UseDocControllAcc)
                 {
-                    DocumentHelper.OnPaymentAdd(paymentId, false);
+                    DocumentHelper.OnPaymentAdd(paymentId);
                     successCount += 2;
                     totalCount += 2;
-                    //BspHistoryProvider.Save(new ServiceJournalEntryLogic.Models.BspHisotry()
-                    //{
-                    //    BSP_ACCOUNT = BankAccountEditText.Value,
-                    //    BSP_ID_NUMBER = idNumber,
-                    //    BSP_SEQUENCE = sequence,
-                    //    TRANS_ID_EMPLOYEE = "",
-                    //    TRANS_ID_COMPANY = ""
-                    //});
-                    continue;
+                    BspHistoryProvider.Save(new ServiceJournalEntryLogic.Models.BspHisotry()
+                    {
+                        BSP_ACCOUNT = BankAccountEditText.Value,
+                        BSP_ID_NUMBER = idNumber,
+                        BSP_SEQUENCE = sequence,
+                        TRANS_ID_EMPLOYEE = "",
+                        TRANS_ID_COMPANY = ""
+                    });
+                 
                 }
-
-                string transIdEmp = string.Empty;
-
-                try
+                else
                 {
-                    transIdEmp = DocumentHelper.AddJournalEntry(oCompany,
-                        settings.PensionAccCr, settings.PensionAccDr, settings.PensionControlAccCr, settings.PensionControlAccDr, pensionAmountPaymentOnAccount,
-                        series, "BS " + BSPNumberEditText.Value + " " + order, postingDate,
-                        bplId, curryencyString);
 
-                    successCount++;
-                    totalCount++;
 
-                }
-                catch (Exception e)
-                {
-                    SAPbouiCOM.Framework.Application.SBO_Application.SetStatusBarMessage(e.Message, BoMessageTime.bmt_Short, true);
-                    errorCount++;
-                }
+                    if (!settings.IncomeTaxOnInvoice && incomeTaxPayer)
+                    {
+                        var incomeTaxPayerPercent = (double)businessPartner.UserFields.Fields.Item("U_IncomeTaxPayerPercent").Value;
+                        var pensionPayerPercent = (double)businessPartner.UserFields.Fields.Item("U_PensionPayerPercent").Value;
+                        double incomeTaxAmount;
 
-                string transIdComp = "";
-                try
-                {
-                    //if (settings.UseDocControllAcc)
-                    //{
+                        if (isPensionPayer)
+                        {
+                            double pensionAmount = Math.Round(amount / 0.784 * pensionPayerPercent / 100,
+                                6);
+                            if (!incomeTaxPayer)
+                            {
+                                pensionAmount = Math.Round(amount / 0.98 * pensionPayerPercent / 100,
+                                    6);
+                            }
+                            incomeTaxAmount = Math.Round((amount / 0.784 - pensionAmount) * incomeTaxPayerPercent / 100, 6);
+
+                        }
+                        else
+                        {
+                            incomeTaxAmount = Math.Round(amount / 0.8 * incomeTaxPayerPercent / 100, 6);
+                        }
+
+                        if (incomeTaxPayer)
+                        {
+                            string incomeTaxPayerTransId = DocumentHelper.AddJournalEntry(oCompany, settings.IncomeTaxAccCr,
+                                settings.IncomeTaxAccDr, settings.IncomeControlTaxAccCr, cardCode, incomeTaxAmount,
+                                series, "BS " + BSPNumberEditText.Value + " " + order, postingDate,
+                                bplId, curryencyString);
+                        }
+
+                    }
+
+
+
+                    //საპენსიოს დაპოსტვა
+                    if (!isPensionPayer)
+                    {
+                        notPayer += 2;
+                        totalCount += 2;
+                        continue;
+                    }
+
+
+
+
+                    string transIdEmp = string.Empty;
+
+                    try
+                    {
+                        transIdEmp = DocumentHelper.AddJournalEntry(oCompany,
+                            settings.PensionAccCr, settings.PensionAccDr, settings.PensionControlAccCr, settings.PensionControlAccDr, pensionAmountPaymentOnAccount,
+                            series, "BS " + BSPNumberEditText.Value + " " + order, postingDate,
+                            bplId, curryencyString);
+
+                        successCount++;
+                        totalCount++;
+
+                    }
+                    catch (Exception e)
+                    {
+                        SAPbouiCOM.Framework.Application.SBO_Application.SetStatusBarMessage(e.Message, BoMessageTime.bmt_Short, true);
+                        errorCount++;
+                    }
+
+                    string transIdComp = "";
+                    try
+                    {
+                        //if (settings.UseDocControllAcc)
+                        //{
                         string transId = DocumentHelper.AddJournalEntry(oCompany, settings.PensionAccCr,
                         "", settings.PensionControlAccCr, cardCode, pensionAmountPaymentOnAccount, series,
                         "BP " + BSPNumberEditText.Value + " " + order, postingDate, bplId,
                         curryencyString);
-                    //}
-                    //else
-                    //{
+                        //}
+                        //else
+                        //{
                         //var comment = "BP " + BSPNumberEditText.Value + " " + order;
 
                         //JournalEntries vJE = (JournalEntries)oCompany.GetBusinessObject(BoObjectTypes.oJournalEntries);
@@ -332,29 +336,31 @@ namespace ServiceJournalEntryAp.Controllers
                         //{
                         //    throw new Exception(oCompany.GetLastErrorDescription());
                         //}
-                    //}
+                        //}
 
 
 
 
-                    successCount++;
-                    totalCount++;
+                        successCount++;
+                        totalCount++;
 
+                    }
+                    catch (Exception e)
+                    {
+                        SAPbouiCOM.Framework.Application.SBO_Application.MessageBox(e.Message);
+                        errorCount++;
+                    }
+
+                    BspHistoryProvider.Save(new ServiceJournalEntryLogic.Models.BspHisotry()
+                    {
+                        BSP_ACCOUNT = BankAccountEditText.Value,
+                        BSP_ID_NUMBER = idNumber,
+                        BSP_SEQUENCE = sequence,
+                        TRANS_ID_EMPLOYEE = transIdEmp,
+                        TRANS_ID_COMPANY = transIdComp
+                    });
                 }
-                catch (Exception e)
-                {
-                    SAPbouiCOM.Framework.Application.SBO_Application.MessageBox(e.Message);
-                    errorCount++;
-                }
-
-                BspHistoryProvider.Save(new ServiceJournalEntryLogic.Models.BspHisotry()
-                {
-                    BSP_ACCOUNT = BankAccountEditText.Value,
-                    BSP_ID_NUMBER = idNumber,
-                    BSP_SEQUENCE = sequence,
-                    TRANS_ID_EMPLOYEE = transIdEmp,
-                    TRANS_ID_COMPANY = transIdComp
-                });
+                
             }
 
             SAPbouiCOM.Framework.Application.SBO_Application.MessageBox(

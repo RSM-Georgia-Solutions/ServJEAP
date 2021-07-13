@@ -22,7 +22,7 @@ namespace ServiceJournalEntryAp.Controllers
 
         public void OnPaymentAdd(string invDocEnttry)
         {
-            DocumentHelper.OnPaymentAdd(invDocEnttry, true);
+            DocumentHelper.OnPaymentAdd(invDocEnttry);
 
         }
 

@@ -58,9 +58,14 @@ namespace ServiceJournalEntryAp.SystemForms
 
         private void Form_ActivateAfter(SBOItemEventArg pVal)
         {
-            Form activeForm = Application.SBO_Application.Forms.ActiveForm;
-            var status = activeForm.DataSources.DBDataSources.Item("OBNH").GetValue("status", 0);
-            GetItem("Item_99").Enabled = status == "E";
+            try
+            {
+                Form activeForm = Application.SBO_Application.Forms.ActiveForm;
+                var status = activeForm.DataSources.DBDataSources.Item("OBNH").GetValue("status", 0);
+                GetItem("Item_99").Enabled = status == "E";
+            }
+            catch { }
+            
         }
 
         private void Form_ClickAfter(SBOItemEventArg pVal)
